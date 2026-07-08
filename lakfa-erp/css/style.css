@@ -601,3 +601,80 @@ tr:hover td {
   display: inline-block;
 }
 
+
+.icon-button {
+  border: 1px solid var(--border);
+  background: #ffffff;
+  color: var(--text-main);
+  border-radius: 999px;
+  width: 38px;
+  height: 38px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+.icon-button:hover {
+  background: var(--primary-light);
+  color: var(--primary);
+  border-color: var(--primary);
+}
+.icon-button svg {
+  width: 18px;
+  height: 18px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+.settings-modal[hidden] { display: none; }
+.settings-modal {
+  position: fixed;
+  inset: 0;
+  z-index: 2000;
+  display: flex;
+  justify-content: flex-end;
+}
+.settings-modal-backdrop {
+  position: absolute;
+  inset: 0;
+  background: rgba(15, 23, 42, 0.45);
+}
+.settings-panel {
+  position: relative;
+  width: min(460px, 100%);
+  height: 100%;
+  background: #ffffff;
+  box-shadow: -12px 0 30px rgba(15, 23, 42, 0.18);
+  padding: 1.5rem;
+  overflow-y: auto;
+}
+.settings-panel-header {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 1.25rem;
+}
+.settings-eyebrow {
+  color: var(--primary);
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+.settings-panel h2 {
+  margin: 0.25rem 0;
+  font-size: 1.25rem;
+}
+.settings-panel p {
+  color: var(--text-muted);
+  font-size: 0.875rem;
+  margin: 0;
+}
+.settings-form {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}

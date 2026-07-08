@@ -56,6 +56,7 @@
           <span id="header-page-title" class="header-page-title">Admin Dashboard</span>
         </div>
         <div class="header-user-section">
+          <button id="module-settings-btn" class="icon-button" type="button" title="Current tab settings" aria-label="Current tab settings"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09a1.65 1.65 0 0 0-1-1.51 1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.6 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 8a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 8.92 3a1.65 1.65 0 0 0 1-1.51V1a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 8c.36.31.85.5 1.38.5H21a2 2 0 1 1 0 4h-.09c-.53 0-1.02.19-1.38.5z"></path></svg></button>
           <span id="header-user-role" class="badge badge-success">Admin / Manager</span>
           <div class="user-info">
             <span id="header-user-name" class="user-name">Loading...</span>
@@ -1000,6 +1001,45 @@
       </div>
     </main>
   </div>
+
+  <div id="module-settings-modal" class="settings-modal" hidden>
+    <div class="settings-modal-backdrop" data-settings-close></div>
+    <aside class="settings-panel" role="dialog" aria-modal="true" aria-labelledby="module-settings-title">
+      <div class="settings-panel-header">
+        <div>
+          <div class="settings-eyebrow">Firebase module settings</div>
+          <h2 id="module-settings-title">Tab Settings</h2>
+          <p id="module-settings-subtitle">Saved in settings/appSettings</p>
+        </div>
+        <button type="button" class="icon-button" data-settings-close aria-label="Close settings">×</button>
+      </div>
+      <form id="module-settings-form" class="settings-form">
+        <input type="hidden" id="settings-section-key">
+        <div class="form-group">
+          <label>Numbering Prefix</label>
+          <input id="settings-numbering-prefix" class="form-control" placeholder="Example: INV, ORD, PRD">
+        </div>
+        <div class="form-group">
+          <label>Required Fields</label>
+          <textarea id="settings-required-fields" class="form-control" rows="3" placeholder="One field per line: name, phone, amount"></textarea>
+        </div>
+        <div class="form-group">
+          <label>Dropdown / Status Options</label>
+          <textarea id="settings-dropdown-options" class="form-control" rows="4" placeholder="One option per line: Paid, Pending, Partial"></textarea>
+        </div>
+        <div class="form-group">
+          <label>Visible Table Columns</label>
+          <textarea id="settings-visible-columns" class="form-control" rows="4" placeholder="One column per line: date, customer, amount"></textarea>
+        </div>
+        <div class="form-group">
+          <label>Module Notes</label>
+          <textarea id="settings-module-notes" class="form-control" rows="3" placeholder="Any settings guidance for this tab"></textarea>
+        </div>
+        <button id="module-settings-save-btn" type="submit" class="btn-primary" style="width: 100%;">Save Settings</button>
+      </form>
+    </aside>
+  </div>
+
 
   <!-- Role Protection Script Guard -->
   <script type="module">

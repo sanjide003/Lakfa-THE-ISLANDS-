@@ -1,7 +1,7 @@
 /* Lakfa ERP Manager Controller */
 import { logoutUser } from "./role-guard.js";
 import { formatCurrency, formatDate, getFirebaseErrorMessage, showToast } from "./utils.js";
-import { COLLECTIONS, commitBatchOperations, createCollectionRecord, deleteCollectionRecord, getAllCollections, updateCollectionRecord } from "./firebase-db.js";
+import { COLLECTIONS, commitBatchOperations, createCollectionRecord, deleteCollectionRecord, getAllCollections, getDocument, saveDocument, updateCollectionRecord } from "./firebase-db.js";
 import { initCompanyProfileForm } from "./company-profile.js";
 
 // Keys mapped to Firestore collections
@@ -27,6 +27,9 @@ const KEYS = {
 let currentEditId = null;
 let firestoreState = {};
 let activeSectionId = "dashboard";
+let appSettings = { modules: {} };
+const APP_SETTINGS_COLLECTION = "settings";
+const APP_SETTINGS_DOCUMENT = "appSettings";
 const READ_ONLY_MESSAGE = "This module is read-only until its Firestore write workflow is enabled.";
 const WRITABLE_FORM_IDS = new Set([
   "product-form", "customer-form", "supplier-form", "investors-form",
@@ -69,22 +72,26 @@ document.addEventListener("DOMContentLoaded", async () => {
   // 2. Load Firestore data for all dashboard and table renderers
   await loadFirestoreData();
 
-  // 3. Enable Firestore writes for approved master-data modules
+  // 3. Load app/module settings foundation
+  await loadAppSettings();
+  initModuleSettingsPanel();
+
+  // 4. Enable Firestore writes for approved modules
   initWritableFormListeners();
 
-  // 4. Set up event listeners for sidebar routing (tab switching)
+  // 5. Set up event listeners for sidebar routing (tab switching + history)
   initSidebarRouting();
 
-  // 5. Render and initialize active dashboard metrics
+  // 6. Render and initialize active dashboard metrics
   updateDashboardMetrics();
 
-  // 6. Handle Logout Button
+  // 7. Handle Logout Button
   const logoutBtn = document.getElementById("logout-btn");
   if (logoutBtn) {
     logoutBtn.addEventListener("click", logoutUser);
   }
 
-  // 7. Handle Sidebar Responsive Toggle
+  // 8. Handle Sidebar Responsive Toggle
   initSidebarMobileToggle();
 });
 
@@ -107,6 +114,21 @@ function setGlobalLoading(isLoading, message = "Loading...") {
       tbody.innerHTML = `<tr><td colspan="20" class="text-center" style="color: var(--primary);">${message}</td></tr>`;
     }
   });
+}
+
+async function loadAppSettings() {
+  try {
+    appSettings = (await getDocument(APP_SETTINGS_COLLECTION, APP_SETTINGS_DOCUMENT)) || { modules: {} };
+    appSettings.modules = appSettings.modules || {};
+  } catch (err) {
+    console.error("Unable to load app settings", err);
+    showToast(getFirebaseErrorMessage(err, "Unable to load app settings."), "error");
+    appSettings = { modules: {} };
+  }
+}
+
+async function saveAppSettings() {
+  await saveDocument(APP_SETTINGS_COLLECTION, APP_SETTINGS_DOCUMENT, appSettings);
 }
 
 function setFormsReadOnly() {
@@ -136,48 +158,74 @@ function initSidebarRouting() {
   const sidebarItems = document.querySelectorAll(".sidebar-item[data-section]");
   const sections = document.querySelectorAll(".app-section");
   const headerPageTitle = document.getElementById("header-page-title");
+
+  const activateSection = (targetSection, pushHistory = true) => {
+    const item = document.querySelector(`.sidebar-item[data-section="${targetSection}"]`);
+    if (!item) return;
+
+    // Close mobile sidebar if open
+    const sidebar = document.getElementById("sidebar");
+    const backdrop = document.getElementById("sidebar-backdrop");
+    if (sidebar && sidebar.classList.contains("open")) {
+      sidebar.classList.remove("open");
+      if (backdrop) backdrop.classList.remove("open");
+    }
+
+    // Toggle active states on menu
+    sidebarItems.forEach(si => si.classList.remove("active"));
+    item.classList.add("active");
+
+    // Toggle active states on pages
+    sections.forEach(sec => sec.classList.remove("active"));
+    const activeSec = document.getElementById(`section-${targetSection}`);
+    if (activeSec) {
+      activeSec.classList.add("active");
+
+      // Update Title
+      if (headerPageTitle) {
+        headerPageTitle.textContent = item.textContent.trim();
+      }
+
+      if (pushHistory) {
+        history.pushState({ section: targetSection }, "", `#${targetSection}`);
+      }
+
+      scrollActiveSectionToTop(activeSec);
+      renderModule(targetSection);
+    }
+  };
   
   sidebarItems.forEach(item => {
     item.addEventListener("click", (e) => {
       e.preventDefault();
-      
       const targetSection = item.getAttribute("data-section");
-      
-      // Close mobile sidebar if open
-      const sidebar = document.getElementById("sidebar");
-      const backdrop = document.getElementById("sidebar-backdrop");
-      if (sidebar && sidebar.classList.contains("open")) {
-        sidebar.classList.remove("open");
-        if (backdrop) backdrop.classList.remove("open");
-      }
-
-      // Toggle active states on menu
-      sidebarItems.forEach(si => si.classList.remove("active"));
-      item.classList.add("active");
-
-      // Toggle active states on pages
-      sections.forEach(sec => sec.classList.remove("active"));
-      const activeSec = document.getElementById(`section-${targetSection}`);
-      if (activeSec) {
-        activeSec.classList.add("active");
-        
-        // Update Title
-        if (headerPageTitle) {
-          headerPageTitle.textContent = item.textContent.trim();
-        }
-
-        // Initialize / Render specific modules
-        renderModule(targetSection);
-      }
+      activateSection(targetSection, true);
     });
   });
 
-  // Default initial render of active section
-  const activeItem = document.querySelector(".sidebar-item.active");
+  window.addEventListener("popstate", (event) => {
+    const targetSection = event.state?.section || location.hash.replace("#", "") || "dashboard";
+    activateSection(targetSection, false);
+  });
+
+  // Default initial render of active section, supporting direct hashes such as manager.html#sales
+  const requestedSection = location.hash.replace("#", "");
+  const activeItem = requestedSection
+    ? document.querySelector(`.sidebar-item[data-section="${requestedSection}"]`)
+    : document.querySelector(".sidebar-item.active");
+
   if (activeItem) {
     const defaultSec = activeItem.getAttribute("data-section");
-    renderModule(defaultSec);
+    history.replaceState({ section: defaultSec }, "", `#${defaultSec}`);
+    activateSection(defaultSec, false);
   }
+}
+
+function scrollActiveSectionToTop(activeSection) {
+  const workspace = document.querySelector(".workspace");
+  if (workspace) workspace.scrollTo({ top: 0, behavior: "auto" });
+  if (document.scrollingElement) document.scrollingElement.scrollTo({ top: 0, behavior: "auto" });
+  activeSection.scrollIntoView({ block: "start" });
 }
 
 /**
@@ -201,6 +249,95 @@ function initSidebarMobileToggle() {
       backdrop.classList.remove("open");
     });
   }
+}
+
+function initModuleSettingsPanel() {
+  const settingsButton = document.getElementById("module-settings-btn");
+  const modal = document.getElementById("module-settings-modal");
+  const form = document.getElementById("module-settings-form");
+  if (!settingsButton || !modal || !form) return;
+
+  settingsButton.addEventListener("click", () => openModuleSettings(activeSectionId));
+  modal.querySelectorAll("[data-settings-close]").forEach((closeEl) => {
+    closeEl.addEventListener("click", closeModuleSettings);
+  });
+
+  form.addEventListener("submit", async (event) => {
+    event.preventDefault();
+    const sectionKey = document.getElementById("settings-section-key")?.value || activeSectionId;
+    appSettings.modules = appSettings.modules || {};
+    appSettings.modules[sectionKey] = {
+      numberingPrefix: getValue("settings-numbering-prefix"),
+      requiredFields: getLines("settings-required-fields"),
+      dropdownOptions: getLines("settings-dropdown-options"),
+      visibleColumns: getLines("settings-visible-columns"),
+      notes: getValue("settings-module-notes")
+    };
+
+    const saveButton = document.getElementById("module-settings-save-btn");
+    if (saveButton) saveButton.disabled = true;
+    try {
+      await saveAppSettings();
+      showToast("Module settings saved to Firebase.", "success");
+      closeModuleSettings();
+    } catch (err) {
+      console.error("Unable to save module settings", err);
+      showToast(getFirebaseErrorMessage(err, "Unable to save module settings."), "error");
+    } finally {
+      if (saveButton) saveButton.disabled = false;
+    }
+  });
+}
+
+function openModuleSettings(sectionKey) {
+  const modal = document.getElementById("module-settings-modal");
+  if (!modal) return;
+
+  const sectionTitle = document.getElementById("header-page-title")?.textContent?.trim() || "Current Tab";
+  const settings = appSettings.modules?.[sectionKey] || getDefaultModuleSettings(sectionKey);
+  setValue("settings-section-key", sectionKey);
+  setValue("settings-numbering-prefix", settings.numberingPrefix);
+  setTextareaLines("settings-required-fields", settings.requiredFields);
+  setTextareaLines("settings-dropdown-options", settings.dropdownOptions);
+  setTextareaLines("settings-visible-columns", settings.visibleColumns);
+  setValue("settings-module-notes", settings.notes);
+
+  const title = document.getElementById("module-settings-title");
+  const subtitle = document.getElementById("module-settings-subtitle");
+  if (title) title.textContent = `${sectionTitle} Settings`;
+  if (subtitle) subtitle.textContent = `Saved in settings/appSettings.modules.${sectionKey}`;
+
+  modal.hidden = false;
+  document.body.style.overflow = "hidden";
+}
+
+function closeModuleSettings() {
+  const modal = document.getElementById("module-settings-modal");
+  if (modal) modal.hidden = true;
+  document.body.style.overflow = "";
+}
+
+function getDefaultModuleSettings(sectionKey) {
+  const readableKey = sectionKey.replace(/-/g, " ").toUpperCase();
+  return {
+    numberingPrefix: readableKey.slice(0, 3),
+    requiredFields: [],
+    dropdownOptions: [],
+    visibleColumns: [],
+    notes: ""
+  };
+}
+
+function getLines(id) {
+  return (document.getElementById(id)?.value || "")
+    .split("\n")
+    .map((line) => line.trim())
+    .filter(Boolean);
+}
+
+function setTextareaLines(id, lines = []) {
+  const input = document.getElementById(id);
+  if (input) input.value = Array.isArray(lines) ? lines.join("\n") : "";
 }
 
 /**
