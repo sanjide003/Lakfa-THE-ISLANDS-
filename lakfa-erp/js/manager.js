@@ -2,7 +2,7 @@
 import { logoutUser } from "./role-guard.js";
 import { formatCurrency, formatDate, getFirebaseErrorMessage, showToast } from "./utils.js";
 import { COLLECTIONS, commitBatchOperations, createCollectionRecord, deleteCollectionRecord, getAllCollections, getDocument, saveDocument, updateCollectionRecord } from "./firebase-db.js";
-import { initCompanyProfileForm } from "./company-profile.js";
+import { initCompanyProfileForm, loadCompanyProfile } from "./company-profile.js";
 
 // Keys mapped to Firestore collections
 const KEYS = {
@@ -30,6 +30,7 @@ let activeSectionId = "dashboard";
 let appSettings = { modules: {} };
 const APP_SETTINGS_COLLECTION = "settings";
 const APP_SETTINGS_DOCUMENT = "appSettings";
+const PRINTABLE_DOCUMENT_KEYS = new Set([KEYS.purchases, KEYS.sales, KEYS.delivery]);
 const READ_ONLY_MESSAGE = "This module is read-only until its Firestore write workflow is enabled.";
 const WRITABLE_FORM_IDS = new Set([
   "product-form", "customer-form", "supplier-form", "investors-form",
@@ -635,15 +636,22 @@ function renderTable(key, tableBodyId) {
     }
 
     if (isWritableKey(key)) {
+      const documentButtons = PRINTABLE_DOCUMENT_KEYS.has(key)
+        ? `<button class="btn-secondary btn-sm print-doc-btn" style="padding: 0.25rem 0.5rem; margin-right: 4px;">Print</button>
+           <button class="btn-secondary btn-sm download-doc-btn" style="padding: 0.25rem 0.5rem; margin-right: 4px;">Download</button>`
+        : "";
       tr.innerHTML = `
         ${cellsHTML}
         <td class="text-right" style="white-space: nowrap;">
+          ${documentButtons}
           <button class="btn-secondary btn-sm edit-btn" style="padding: 0.25rem 0.5rem; margin-right: 4px;">Edit</button>
           <button class="btn-danger btn-sm delete-btn" style="padding: 0.25rem 0.5rem;">Delete</button>
         </td>
       `;
       tr.querySelector(".edit-btn").addEventListener("click", () => loadRecordForEdit(key, row.id));
       tr.querySelector(".delete-btn").addEventListener("click", () => deleteRecord(key, row.id));
+      tr.querySelector(".print-doc-btn")?.addEventListener("click", () => printDocument(key, row.id));
+      tr.querySelector(".download-doc-btn")?.addEventListener("click", () => downloadDocumentHtml(key, row.id));
     } else {
       tr.innerHTML = `
         ${cellsHTML}
@@ -653,6 +661,179 @@ function renderTable(key, tableBodyId) {
 
     tbody.appendChild(tr);
   });
+}
+
+async function getCompanyProfileForDocument() {
+  try {
+    return await loadCompanyProfile();
+  } catch (err) {
+    console.error("Unable to load company profile for printable document", err);
+    showToast(getFirebaseErrorMessage(err, "Unable to load company profile for printable document."), "error");
+    return {};
+  }
+}
+
+function getPrintableDocumentMeta(key) {
+  if (key === KEYS.sales) {
+    return { title: "Sales Invoice", numberLabel: "Invoice No", recordNumber: (record) => record.invoice || record.id, partyLabel: "Bill To", amountLabel: "Net Receivable", amountField: "finalAmount" };
+  }
+
+  if (key === KEYS.purchases) {
+    return { title: "Purchase Invoice", numberLabel: "Supplier Invoice", recordNumber: (record) => record.invoice || record.id, partyLabel: "Supplier", amountLabel: "Total Amount", amountField: "totalAmount" };
+  }
+
+  return { title: "Delivery Note", numberLabel: "Delivery Ref", recordNumber: (record) => record.orderId || record.id, partyLabel: "Ship To", amountLabel: "Shipping Charge", amountField: "charge" };
+}
+
+function getPrintableLineItems(key, record) {
+  if (key === KEYS.sales) {
+    return [{ item: record.product, qty: record.qty, rate: record.rate, total: record.finalAmount }];
+  }
+
+  if (key === KEYS.purchases) {
+    return [{ item: record.itemName || record.item, qty: record.qty, rate: record.rate, total: record.totalAmount }];
+  }
+
+  return [{ item: `Courier: ${record.partner || "-"}`, qty: 1, rate: record.charge, total: record.charge }];
+}
+
+function getPartyDetails(key, record) {
+  if (key === KEYS.sales) return [record.customer, record.notes].filter(Boolean).join("<br>");
+  if (key === KEYS.purchases) return [record.supplier, record.paymentMode ? `Payment: ${record.paymentMode}` : ""].filter(Boolean).join("<br>");
+  return [record.customer, record.trackingId ? `Tracking: ${record.trackingId}` : "", record.status ? `Status: ${record.status}` : ""].filter(Boolean).join("<br>");
+}
+
+function buildPrintableDocumentHtml(key, record, profile = {}) {
+  const meta = getPrintableDocumentMeta(key);
+  const lineItems = getPrintableLineItems(key, record);
+  const documentNumber = meta.recordNumber(record);
+  const logo = profile.logoDataUrl ? `<img src="${profile.logoDataUrl}" alt="Company logo" class="print-logo">` : "";
+  const signature = profile.signatureDataUrl ? `<img src="${profile.signatureDataUrl}" alt="Signature" class="print-signature-img">` : "";
+  const website = profile.website ? `<div>${escapeHtml(profile.website)}</div>` : "";
+  const email = profile.email ? `<div>${escapeHtml(profile.email)}</div>` : "";
+  const phone = profile.phone ? `<div>${escapeHtml(profile.phone)}</div>` : "";
+  const gst = profile.gst ? `<div><strong>GST:</strong> ${escapeHtml(profile.gst)}</div>` : "";
+  const companyAddress = [profile.address, profile.state, profile.pincode].filter(Boolean).map(escapeHtml).join(", ");
+
+  return `<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>${escapeHtml(meta.title)} - ${escapeHtml(documentNumber || record.id || "document")}</title>
+  <style>
+    body { font-family: Arial, sans-serif; color: #0f172a; margin: 0; padding: 24px; }
+    .print-sheet { max-width: 820px; margin: 0 auto; border: 1px solid #d1d5db; padding: 28px; }
+    .print-header { display: flex; justify-content: space-between; gap: 24px; border-bottom: 2px solid #0f766e; padding-bottom: 16px; }
+    .print-logo { max-width: 120px; max-height: 90px; object-fit: contain; }
+    h1 { margin: 0; color: #0f766e; font-size: 24px; }
+    h2 { margin: 16px 0 8px; font-size: 18px; }
+    .muted { color: #64748b; font-size: 13px; line-height: 1.5; }
+    .meta-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin: 20px 0; }
+    .box { border: 1px solid #e2e8f0; padding: 12px; min-height: 72px; }
+    table { width: 100%; border-collapse: collapse; margin-top: 16px; }
+    th, td { border: 1px solid #e2e8f0; padding: 10px; text-align: left; }
+    th { background: #f8fafc; }
+    .text-right { text-align: right; }
+    .total-row td { font-weight: 700; background: #f8fafc; }
+    .print-footer { display: flex; justify-content: space-between; gap: 24px; margin-top: 36px; align-items: flex-end; }
+    .print-signature-img { max-width: 150px; max-height: 70px; object-fit: contain; display: block; margin-bottom: 8px; }
+    @media print { body { padding: 0; } .print-sheet { border: 0; } }
+  </style>
+</head>
+<body>
+  <main class="print-sheet">
+    <section class="print-header">
+      <div>
+        ${logo}
+        <h1>${escapeHtml(profile.companyName || "Lakfa ERP")}</h1>
+        <div class="muted">${companyAddress || "Company address"}</div>
+        <div class="muted">${phone}${email}${website}${gst}</div>
+      </div>
+      <div class="text-right">
+        <h1>${escapeHtml(meta.title)}</h1>
+        <div class="muted"><strong>${escapeHtml(meta.numberLabel)}:</strong> ${escapeHtml(documentNumber || record.id || "-")}</div>
+        <div class="muted"><strong>Date:</strong> ${escapeHtml(formatDate(record.date || record.dispatchDate || new Date().toISOString()))}</div>
+      </div>
+    </section>
+
+    <section class="meta-grid">
+      <div class="box">
+        <h2>${escapeHtml(meta.partyLabel)}</h2>
+        <div class="muted">${getPartyDetails(key, record) || "-"}</div>
+      </div>
+      <div class="box">
+        <h2>Payment / Status</h2>
+        <div class="muted">${escapeHtml(record.paymentStatus || record.status || "-")}</div>
+        <div class="muted">${escapeHtml(record.paymentMode || record.partner || "")}</div>
+      </div>
+    </section>
+
+    <table>
+      <thead><tr><th>Item / Description</th><th class="text-right">Qty</th><th class="text-right">Rate</th><th class="text-right">Amount</th></tr></thead>
+      <tbody>
+        ${lineItems.map((item) => `<tr><td>${escapeHtml(item.item || "-")}</td><td class="text-right">${escapeHtml(item.qty ?? "-")}</td><td class="text-right">${formatCurrency(item.rate || 0)}</td><td class="text-right">${formatCurrency(item.total || 0)}</td></tr>`).join("")}
+        ${key === KEYS.sales ? `<tr><td colspan="3" class="text-right">Discount</td><td class="text-right">${formatCurrency(record.discount || 0)}</td></tr>` : ""}
+        <tr class="total-row"><td colspan="3" class="text-right">${escapeHtml(meta.amountLabel)}</td><td class="text-right">${formatCurrency(record[meta.amountField] || 0)}</td></tr>
+      </tbody>
+    </table>
+
+    <section class="print-footer">
+      <div class="muted">Generated from Firestore record ${escapeHtml(record.id || "-")}.</div>
+      <div class="text-right">${signature}<strong>Authorized Signatory</strong></div>
+    </section>
+  </main>
+</body>
+</html>`;
+}
+
+async function printDocument(key, id) {
+  const record = getStoredRecords(key).find((item) => item.id === id);
+  if (!record) {
+    showToast("Unable to find this Firestore record for printing.", "error");
+    return;
+  }
+
+  const profile = await getCompanyProfileForDocument();
+  const html = buildPrintableDocumentHtml(key, record, profile);
+  const printWindow = window.open("", "_blank", "width=900,height=700");
+  if (!printWindow) {
+    showToast("Popup blocked. Please allow popups to print this document.", "error");
+    return;
+  }
+  printWindow.document.open();
+  printWindow.document.write(html);
+  printWindow.document.close();
+  printWindow.focus();
+  printWindow.print();
+}
+
+async function downloadDocumentHtml(key, id) {
+  const record = getStoredRecords(key).find((item) => item.id === id);
+  if (!record) {
+    showToast("Unable to find this Firestore record for download.", "error");
+    return;
+  }
+
+  const profile = await getCompanyProfileForDocument();
+  const html = buildPrintableDocumentHtml(key, record, profile);
+  const meta = getPrintableDocumentMeta(key);
+  const fileName = `${meta.title.toLowerCase().replace(/[^a-z0-9]+/g, "-")}-${(meta.recordNumber(record) || record.id || "document").toString().replace(/[^a-z0-9-]+/gi, "-")}.html`;
+  const link = document.createElement("a");
+  link.href = URL.createObjectURL(new Blob([html], { type: "text/html" }));
+  link.download = fileName;
+  document.body.appendChild(link);
+  link.click();
+  URL.revokeObjectURL(link.href);
+  link.remove();
+}
+
+function escapeHtml(value) {
+  return String(value ?? "")
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#039;");
 }
 
 /**

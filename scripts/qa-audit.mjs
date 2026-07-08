@@ -10,6 +10,13 @@ const fail = (message) => {
 const firebaseDb = read('lakfa-erp/js/firebase-db.js');
 const rules = read('docs/firestore.rules');
 
+const managerController = read('lakfa-erp/js/manager.js');
+['PRINTABLE_DOCUMENT_KEYS', 'buildPrintableDocumentHtml', 'printDocument', 'downloadDocumentHtml', 'logoDataUrl', 'signatureDataUrl'].forEach((needle) => {
+  if (!managerController.includes(needle)) {
+    fail(`Manager invoice/PDF foundation is missing ${needle}`);
+  }
+});
+
 const companyProfile = read('lakfa-erp/js/company-profile.js');
 if (!companyProfile.includes('logoDataUrl') || !companyProfile.includes('signatureDataUrl')) {
   fail('Company profile must persist logoDataUrl and signatureDataUrl in Firestore');

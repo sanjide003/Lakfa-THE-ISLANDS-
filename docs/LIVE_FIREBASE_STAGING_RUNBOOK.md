@@ -119,16 +119,27 @@ Validation checks:
 - [ ] Direct Firestore write attempt is denied by rules.
 - [ ] Sign out returns to root login.
 
-## 7. Vercel PWA cache verification
+## 7. Invoice / GST / PDF foundation verification
+
+| Check | Steps | Expected result | Status |
+|---|---|---|---|
+| Sales invoice print | Admin → Sales → choose a Firestore sales row → Print. | New printable document opens with company logo, name, GST, address, phone, email, website, customer, item, total, discount, net amount, and signature. | ☐ |
+| Purchase invoice print | Admin → Purchase → choose a Firestore purchase row → Print. | Purchase document opens with supplier invoice number, supplier, item, quantity, rate, total amount, payment mode/status, company branding, and signature. | ☐ |
+| Delivery note print | Admin → Delivery / Courier → choose a Firestore delivery row → Print. | Delivery note opens with order reference, customer, courier partner, tracking, dispatch/delivery dates, charge, company branding, and signature. | ☐ |
+| Download action | Use Download on sales, purchase, and delivery rows. | Browser downloads a print-ready document file generated from current Firestore record data without writing browser storage. | ☐ |
+| Company identity source | Update `settings/companyProfile`, refresh, then print again. | Printable documents use latest Firestore `companyName`, `gst`, `address`, `phone`, `email`, `website`, `logoDataUrl`, and `signatureDataUrl`. | ☐ |
+| Investor restriction | Login as investor and inspect investor screens. | Investor can read data but cannot see admin print/download/edit/delete controls. | ☐ |
+
+## 8. Vercel PWA cache verification
 
 - [ ] `/` opens the login page.
 - [ ] `/lakfa-erp/service-worker.js` returns `Cache-Control: public, max-age=0, must-revalidate`.
-- [ ] Browser DevTools Application → Cache Storage shows `lakfa-erp-cache-v4`.
+- [ ] Browser DevTools Application → Cache Storage shows `lakfa-erp-cache-v5`.
 - [ ] Cached assets include `js/firebase-db.js`, `js/company-profile.js`, `js/manager.js`, `js/investor.js`, and `css/style.css`.
 - [ ] Hard refresh loads latest company profile image behavior.
 - [ ] PWA install prompt works in Chrome or Edge.
 
-## 8. Bug report template
+## 9. Bug report template
 
 | Field | Value |
 | --- | --- |
