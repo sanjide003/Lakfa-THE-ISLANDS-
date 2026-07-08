@@ -123,10 +123,10 @@ Validation checks:
 
 | Check | Steps | Expected result | Status |
 |---|---|---|---|
-| Sales invoice print | Admin → Sales → choose a Firestore sales row → Print. | New printable document opens with company logo, name, GST, address, phone, email, website, customer, item, total, discount, net amount, and signature. | ☐ |
-| Purchase invoice print | Admin → Purchase → choose a Firestore purchase row → Print. | Purchase document opens with supplier invoice number, supplier, item, quantity, rate, total amount, payment mode/status, company branding, and signature. | ☐ |
-| Delivery note print | Admin → Delivery / Courier → choose a Firestore delivery row → Print. | Delivery note opens with order reference, customer, courier partner, tracking, dispatch/delivery dates, charge, company branding, and signature. | ☐ |
-| Download action | Use Download on sales, purchase, and delivery rows. | Browser downloads a print-ready document file generated from current Firestore record data without writing browser storage. | ☐ |
+| Sales invoice print/PDF | Admin → Sales → choose a Firestore sales row → Print and choose Save as PDF. | A4 tax invoice opens with company logo, GSTIN, address, contact, customer GST if available, invoice prefix from `settings/appSettings`, taxable value, CGST/SGST/IGST, grand total in words, and signature. | ☐ |
+| Purchase invoice print/PDF | Admin → Purchase → choose a Firestore purchase row → Print and choose Save as PDF. | A4 purchase invoice opens with supplier GST if available, voucher prefix from `settings/appSettings`, taxable value, CGST/SGST/IGST, grand total in words, company branding, and signature. | ☐ |
+| Delivery note print/PDF | Admin → Delivery / Courier → choose a Firestore delivery row → Print and choose Save as PDF. | A4 delivery note opens with delivery prefix from `settings/appSettings`, order reference, customer, courier partner, tracking, dispatch/delivery dates, charge, company branding, and signature. | ☐ |
+| Download action | Use Download on sales, purchase, and delivery rows. | Browser downloads a print-ready A4 document file generated from current Firestore record data without writing browser storage. | ☐ |
 | Company identity source | Update `settings/companyProfile`, refresh, then print again. | Printable documents use latest Firestore `companyName`, `gst`, `address`, `phone`, `email`, `website`, `logoDataUrl`, and `signatureDataUrl`. | ☐ |
 | Investor restriction | Login as investor and inspect investor screens. | Investor can read data but cannot see admin print/download/edit/delete controls. | ☐ |
 
@@ -134,7 +134,7 @@ Validation checks:
 
 - [ ] `/` opens the login page.
 - [ ] `/lakfa-erp/service-worker.js` returns `Cache-Control: public, max-age=0, must-revalidate`.
-- [ ] Browser DevTools Application → Cache Storage shows `lakfa-erp-cache-v5`.
+- [ ] Browser DevTools Application → Cache Storage shows `lakfa-erp-cache-v6`.
 - [ ] Cached assets include `js/firebase-db.js`, `js/company-profile.js`, `js/manager.js`, `js/investor.js`, and `css/style.css`.
 - [ ] Hard refresh loads latest company profile image behavior.
 - [ ] PWA install prompt works in Chrome or Edge.

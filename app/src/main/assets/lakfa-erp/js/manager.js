@@ -269,6 +269,8 @@ function initModuleSettingsPanel() {
     appSettings.modules = appSettings.modules || {};
     appSettings.modules[sectionKey] = {
       numberingPrefix: getValue("settings-numbering-prefix"),
+      gstRate: getNumber("settings-gst-rate"),
+      taxMode: getValue("settings-tax-mode") || "inclusive",
       requiredFields: getLines("settings-required-fields"),
       dropdownOptions: getLines("settings-dropdown-options"),
       visibleColumns: getLines("settings-visible-columns"),
@@ -298,6 +300,8 @@ function openModuleSettings(sectionKey) {
   const settings = appSettings.modules?.[sectionKey] || getDefaultModuleSettings(sectionKey);
   setValue("settings-section-key", sectionKey);
   setValue("settings-numbering-prefix", settings.numberingPrefix);
+  setValue("settings-gst-rate", settings.gstRate);
+  setValue("settings-tax-mode", settings.taxMode);
   setTextareaLines("settings-required-fields", settings.requiredFields);
   setTextareaLines("settings-dropdown-options", settings.dropdownOptions);
   setTextareaLines("settings-visible-columns", settings.visibleColumns);
@@ -322,6 +326,8 @@ function getDefaultModuleSettings(sectionKey) {
   const readableKey = sectionKey.replace(/-/g, " ").toUpperCase();
   return {
     numberingPrefix: readableKey.slice(0, 3),
+    gstRate: ["sales", "purchase"].includes(sectionKey) ? 18 : 0,
+    taxMode: "inclusive",
     requiredFields: [],
     dropdownOptions: [],
     visibleColumns: [],
@@ -675,83 +681,222 @@ async function getCompanyProfileForDocument() {
 
 function getPrintableDocumentMeta(key) {
   if (key === KEYS.sales) {
-    return { title: "Sales Invoice", numberLabel: "Invoice No", recordNumber: (record) => record.invoice || record.id, partyLabel: "Bill To", amountLabel: "Net Receivable", amountField: "finalAmount" };
+    return {
+      title: "Tax Invoice",
+      documentType: "Sales Invoice",
+      moduleName: "sales",
+      prefixFallback: "INV",
+      numberLabel: "Invoice No",
+      recordNumber: (record) => record.invoice || record.invoiceNumber || record.id,
+      partyLabel: "Bill To",
+      amountLabel: "Grand Total",
+      amountField: "finalAmount",
+      defaultGstRate: 18
+    };
   }
 
   if (key === KEYS.purchases) {
-    return { title: "Purchase Invoice", numberLabel: "Supplier Invoice", recordNumber: (record) => record.invoice || record.id, partyLabel: "Supplier", amountLabel: "Total Amount", amountField: "totalAmount" };
+    return {
+      title: "Purchase Invoice",
+      documentType: "Purchase Invoice",
+      moduleName: "purchase",
+      prefixFallback: "PUR",
+      numberLabel: "Voucher No",
+      recordNumber: (record) => record.invoice || record.invoiceNumber || record.id,
+      partyLabel: "Supplier",
+      amountLabel: "Grand Total",
+      amountField: "totalAmount",
+      defaultGstRate: 18
+    };
   }
 
-  return { title: "Delivery Note", numberLabel: "Delivery Ref", recordNumber: (record) => record.orderId || record.id, partyLabel: "Ship To", amountLabel: "Shipping Charge", amountField: "charge" };
+  return {
+    title: "Delivery Note",
+    documentType: "Delivery Note",
+    moduleName: "delivery",
+    prefixFallback: "DLV",
+    numberLabel: "Delivery Note No",
+    recordNumber: (record) => record.orderId || record.deliveryNumber || record.id,
+    partyLabel: "Ship To",
+    amountLabel: "Shipping Charge",
+    amountField: "charge",
+    defaultGstRate: 0
+  };
 }
 
-function getPrintableLineItems(key, record) {
+function getPrintableLineItems(key, record, totals) {
   if (key === KEYS.sales) {
-    return [{ item: record.product, qty: record.qty, rate: record.rate, total: record.finalAmount }];
+    return [{ item: record.product, hsn: record.hsn || record.hsnCode || "-", qty: record.qty, rate: record.rate, taxable: totals.taxableValue, total: totals.grandTotal }];
   }
 
   if (key === KEYS.purchases) {
-    return [{ item: record.itemName || record.item, qty: record.qty, rate: record.rate, total: record.totalAmount }];
+    return [{ item: record.itemName || record.item, hsn: record.hsn || record.hsnCode || "-", qty: record.qty, rate: record.rate, taxable: totals.taxableValue, total: totals.grandTotal }];
   }
 
-  return [{ item: `Courier: ${record.partner || "-"}`, qty: 1, rate: record.charge, total: record.charge }];
+  return [{ item: `Courier: ${record.partner || "-"}`, hsn: record.hsn || "-", qty: 1, rate: record.charge, taxable: totals.taxableValue, total: totals.grandTotal }];
 }
 
 function getPartyDetails(key, record) {
-  if (key === KEYS.sales) return [record.customer, record.notes].filter(Boolean).join("<br>");
-  if (key === KEYS.purchases) return [record.supplier, record.paymentMode ? `Payment: ${record.paymentMode}` : ""].filter(Boolean).join("<br>");
-  return [record.customer, record.trackingId ? `Tracking: ${record.trackingId}` : "", record.status ? `Status: ${record.status}` : ""].filter(Boolean).join("<br>");
+  const party = getDocumentParty(key, record);
+  const details = [
+    party.name,
+    party.address,
+    party.phone ? `Phone: ${party.phone}` : "",
+    party.gst ? `GSTIN: ${party.gst}` : "",
+    key === KEYS.delivery && record.trackingId ? `Tracking: ${record.trackingId}` : "",
+    key === KEYS.delivery && record.status ? `Status: ${record.status}` : "",
+    key === KEYS.sales && record.notes ? `Notes: ${record.notes}` : "",
+    key === KEYS.purchases && record.paymentMode ? `Payment: ${record.paymentMode}` : ""
+  ];
+  return details.filter(Boolean).map(escapeHtml).join("<br>");
+}
+
+function getDocumentParty(key, record) {
+  if (key === KEYS.sales) {
+    const customer = getStoredRecords(KEYS.customers).find((item) => item.name === record.customer || item.id === record.customerId) || {};
+    return {
+      name: record.customer || customer.name || "-",
+      address: record.customerAddress || customer.address || customer.place || "",
+      phone: record.customerPhone || customer.phone || "",
+      gst: record.customerGst || record.customerGST || customer.gst || ""
+    };
+  }
+
+  if (key === KEYS.purchases) {
+    const supplier = getStoredRecords(KEYS.suppliers).find((item) => item.name === record.supplier || item.id === record.supplierId) || {};
+    return {
+      name: record.supplier || supplier.name || "-",
+      address: record.supplierAddress || supplier.address || supplier.place || "",
+      phone: record.supplierPhone || supplier.phone || "",
+      gst: record.supplierGst || record.supplierGST || supplier.gst || ""
+    };
+  }
+
+  return {
+    name: record.customer || record.customerName || "-",
+    address: record.address || record.deliveryAddress || "",
+    phone: record.phone || record.customerPhone || "",
+    gst: record.customerGst || record.customerGST || ""
+  };
+}
+
+function getModulePrintSettings(meta) {
+  const moduleSettings = appSettings.modules?.[meta.moduleName] || appSettings.modules?.[meta.moduleName.replace("purchase", "purchases")] || {};
+  return {
+    prefix: moduleSettings.numberingPrefix || meta.prefixFallback,
+    gstRate: parseFloat(moduleSettings.gstRate ?? moduleSettings.taxRate ?? meta.defaultGstRate),
+    taxMode: moduleSettings.taxMode || "inclusive"
+  };
+}
+
+function formatDocumentNumber(meta, record) {
+  const settings = getModulePrintSettings(meta);
+  const rawNumber = String(meta.recordNumber(record) || record.id || "document");
+  if (rawNumber.toLowerCase().startsWith(settings.prefix.toLowerCase())) return rawNumber;
+  return `${settings.prefix}-${rawNumber}`;
+}
+
+function calculateDocumentTotals(key, record, meta, profile = {}) {
+  const settings = getModulePrintSettings(meta);
+  const amount = parseFloat(record[meta.amountField] || 0);
+  const discount = key === KEYS.sales ? parseFloat(record.discount || 0) : 0;
+  const gstRate = Number.isFinite(settings.gstRate) ? Math.max(0, settings.gstRate) : 0;
+  const taxMode = settings.taxMode;
+  const taxableValue = gstRate > 0 && taxMode === "inclusive" ? amount / (1 + gstRate / 100) : amount;
+  const taxAmount = gstRate > 0 ? (taxMode === "inclusive" ? amount - taxableValue : taxableValue * (gstRate / 100)) : 0;
+  const interstate = isInterstateTransaction(record, profile);
+  const cgst = interstate ? 0 : taxAmount / 2;
+  const sgst = interstate ? 0 : taxAmount / 2;
+  const igst = interstate ? taxAmount : 0;
+  const grandTotal = taxMode === "exclusive" ? taxableValue + taxAmount : amount;
+
+  return {
+    discount,
+    gstRate,
+    taxableValue,
+    cgst,
+    sgst,
+    igst,
+    taxAmount,
+    grandTotal,
+    totalInWords: amountToIndianWords(Math.round(grandTotal))
+  };
+}
+
+function isInterstateTransaction(record, profile = {}) {
+  const placeOfSupply = String(record.placeOfSupply || record.supplyState || record.customerState || record.supplierState || "").trim().toLowerCase();
+  if (!placeOfSupply) return false;
+  const companyState = String(profile.state || appSettings.companyState || "").trim().toLowerCase();
+  return Boolean(companyState && placeOfSupply !== companyState);
 }
 
 function buildPrintableDocumentHtml(key, record, profile = {}) {
   const meta = getPrintableDocumentMeta(key);
-  const lineItems = getPrintableLineItems(key, record);
-  const documentNumber = meta.recordNumber(record);
-  const logo = profile.logoDataUrl ? `<img src="${profile.logoDataUrl}" alt="Company logo" class="print-logo">` : "";
-  const signature = profile.signatureDataUrl ? `<img src="${profile.signatureDataUrl}" alt="Signature" class="print-signature-img">` : "";
-  const website = profile.website ? `<div>${escapeHtml(profile.website)}</div>` : "";
-  const email = profile.email ? `<div>${escapeHtml(profile.email)}</div>` : "";
-  const phone = profile.phone ? `<div>${escapeHtml(profile.phone)}</div>` : "";
-  const gst = profile.gst ? `<div><strong>GST:</strong> ${escapeHtml(profile.gst)}</div>` : "";
+  const totals = calculateDocumentTotals(key, record, meta, profile);
+  const lineItems = getPrintableLineItems(key, record, totals);
+  const documentNumber = formatDocumentNumber(meta, record);
+  const logo = profile.logoDataUrl ? `<img src="${profile.logoDataUrl}" alt="Company logo" class="brand-logo">` : "";
+  const signature = profile.signatureDataUrl ? `<img src="${profile.signatureDataUrl}" alt="Signature" class="signature-img">` : "";
+  const website = profile.website ? `<span>${escapeHtml(profile.website)}</span>` : "";
+  const email = profile.email ? `<span>${escapeHtml(profile.email)}</span>` : "";
+  const phone = profile.phone ? `<span>${escapeHtml(profile.phone)}</span>` : "";
+  const gst = profile.gst ? `<span><strong>GSTIN:</strong> ${escapeHtml(profile.gst)}</span>` : "";
   const companyAddress = [profile.address, profile.state, profile.pincode].filter(Boolean).map(escapeHtml).join(", ");
 
   return `<!doctype html>
 <html>
 <head>
   <meta charset="utf-8">
-  <title>${escapeHtml(meta.title)} - ${escapeHtml(documentNumber || record.id || "document")}</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>${escapeHtml(meta.title)} - ${escapeHtml(documentNumber)}</title>
   <style>
-    body { font-family: Arial, sans-serif; color: #0f172a; margin: 0; padding: 24px; }
-    .print-sheet { max-width: 820px; margin: 0 auto; border: 1px solid #d1d5db; padding: 28px; }
-    .print-header { display: flex; justify-content: space-between; gap: 24px; border-bottom: 2px solid #0f766e; padding-bottom: 16px; }
-    .print-logo { max-width: 120px; max-height: 90px; object-fit: contain; }
-    h1 { margin: 0; color: #0f766e; font-size: 24px; }
-    h2 { margin: 16px 0 8px; font-size: 18px; }
-    .muted { color: #64748b; font-size: 13px; line-height: 1.5; }
-    .meta-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin: 20px 0; }
-    .box { border: 1px solid #e2e8f0; padding: 12px; min-height: 72px; }
-    table { width: 100%; border-collapse: collapse; margin-top: 16px; }
-    th, td { border: 1px solid #e2e8f0; padding: 10px; text-align: left; }
-    th { background: #f8fafc; }
+    @page { size: A4; margin: 12mm; }
+    * { box-sizing: border-box; }
+    body { font-family: Arial, Helvetica, sans-serif; color: #0f172a; margin: 0; background: #f1f5f9; }
+    .sheet { width: 210mm; min-height: 297mm; margin: 0 auto; background: #fff; padding: 14mm; border: 1px solid #d1d5db; }
+    .topbar { display: grid; grid-template-columns: 1fr auto; gap: 18px; border-bottom: 3px solid #0f766e; padding-bottom: 12px; }
+    .brand { display: flex; gap: 14px; align-items: flex-start; }
+    .brand-logo { width: 90px; max-height: 72px; object-fit: contain; }
+    .company-name { margin: 0; color: #0f766e; font-size: 25px; letter-spacing: 0.2px; }
+    .contact-row { display: flex; flex-wrap: wrap; gap: 8px 14px; margin-top: 6px; }
+    .muted { color: #475569; font-size: 12px; line-height: 1.45; }
+    .doc-title { text-align: right; }
+    .doc-title h1 { margin: 0 0 8px; color: #0f172a; font-size: 22px; text-transform: uppercase; }
+    .pill { display: inline-block; padding: 4px 9px; border-radius: 999px; background: #ccfbf1; color: #115e59; font-weight: 700; font-size: 11px; }
+    .meta-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin: 16px 0; }
+    .box { border: 1px solid #cbd5e1; border-radius: 8px; padding: 10px; min-height: 86px; }
+    .box h2 { margin: 0 0 6px; font-size: 13px; color: #0f766e; text-transform: uppercase; }
+    table { width: 100%; border-collapse: collapse; margin-top: 12px; font-size: 12px; }
+    th, td { border: 1px solid #cbd5e1; padding: 8px; vertical-align: top; }
+    th { background: #f8fafc; color: #334155; text-transform: uppercase; font-size: 11px; }
     .text-right { text-align: right; }
-    .total-row td { font-weight: 700; background: #f8fafc; }
-    .print-footer { display: flex; justify-content: space-between; gap: 24px; margin-top: 36px; align-items: flex-end; }
-    .print-signature-img { max-width: 150px; max-height: 70px; object-fit: contain; display: block; margin-bottom: 8px; }
-    @media print { body { padding: 0; } .print-sheet { border: 0; } }
+    .summary { width: 42%; margin-left: auto; margin-top: 12px; }
+    .summary td { padding: 7px 8px; }
+    .grand td { background: #ecfdf5; color: #065f46; font-size: 13px; font-weight: 800; }
+    .amount-words { border: 1px solid #cbd5e1; border-radius: 8px; padding: 10px; margin-top: 12px; font-size: 12px; }
+    .footer { display: grid; grid-template-columns: 1fr 180px; gap: 20px; margin-top: 28px; align-items: end; }
+    .signature-img { max-width: 150px; max-height: 70px; object-fit: contain; display: block; margin: 0 0 8px auto; }
+    .signature-box { text-align: right; min-height: 90px; }
+    .terms { font-size: 11px; color: #64748b; }
+    .print-actions-note { display: none; }
+    @media print { body { background: #fff; } .sheet { width: auto; min-height: auto; border: 0; padding: 0; } }
   </style>
 </head>
 <body>
-  <main class="print-sheet">
-    <section class="print-header">
-      <div>
+  <main class="sheet">
+    <section class="topbar">
+      <div class="brand">
         ${logo}
-        <h1>${escapeHtml(profile.companyName || "Lakfa ERP")}</h1>
-        <div class="muted">${companyAddress || "Company address"}</div>
-        <div class="muted">${phone}${email}${website}${gst}</div>
+        <div>
+          <h1 class="company-name">${escapeHtml(profile.companyName || "Lakfa ERP")}</h1>
+          <div class="muted">${companyAddress || "Company address"}</div>
+          <div class="contact-row muted">${phone}${email}${website}${gst}</div>
+        </div>
       </div>
-      <div class="text-right">
+      <div class="doc-title">
         <h1>${escapeHtml(meta.title)}</h1>
-        <div class="muted"><strong>${escapeHtml(meta.numberLabel)}:</strong> ${escapeHtml(documentNumber || record.id || "-")}</div>
+        <span class="pill">${escapeHtml(meta.documentType)}</span>
+        <div class="muted" style="margin-top: 8px;"><strong>${escapeHtml(meta.numberLabel)}:</strong> ${escapeHtml(documentNumber)}</div>
         <div class="muted"><strong>Date:</strong> ${escapeHtml(formatDate(record.date || record.dispatchDate || new Date().toISOString()))}</div>
       </div>
     </section>
@@ -762,28 +907,68 @@ function buildPrintableDocumentHtml(key, record, profile = {}) {
         <div class="muted">${getPartyDetails(key, record) || "-"}</div>
       </div>
       <div class="box">
-        <h2>Payment / Status</h2>
-        <div class="muted">${escapeHtml(record.paymentStatus || record.status || "-")}</div>
-        <div class="muted">${escapeHtml(record.paymentMode || record.partner || "")}</div>
+        <h2>Supply / Payment</h2>
+        <div class="muted"><strong>Status:</strong> ${escapeHtml(record.paymentStatus || record.status || "-")}</div>
+        <div class="muted"><strong>Mode:</strong> ${escapeHtml(record.paymentMode || record.partner || "-")}</div>
+        <div class="muted"><strong>GST Rate:</strong> ${totals.gstRate}%</div>
       </div>
     </section>
 
     <table>
-      <thead><tr><th>Item / Description</th><th class="text-right">Qty</th><th class="text-right">Rate</th><th class="text-right">Amount</th></tr></thead>
+      <thead><tr><th>#</th><th>Item / Description</th><th>HSN/SAC</th><th class="text-right">Qty</th><th class="text-right">Rate</th><th class="text-right">Taxable Value</th><th class="text-right">Total</th></tr></thead>
       <tbody>
-        ${lineItems.map((item) => `<tr><td>${escapeHtml(item.item || "-")}</td><td class="text-right">${escapeHtml(item.qty ?? "-")}</td><td class="text-right">${formatCurrency(item.rate || 0)}</td><td class="text-right">${formatCurrency(item.total || 0)}</td></tr>`).join("")}
-        ${key === KEYS.sales ? `<tr><td colspan="3" class="text-right">Discount</td><td class="text-right">${formatCurrency(record.discount || 0)}</td></tr>` : ""}
-        <tr class="total-row"><td colspan="3" class="text-right">${escapeHtml(meta.amountLabel)}</td><td class="text-right">${formatCurrency(record[meta.amountField] || 0)}</td></tr>
+        ${lineItems.map((item, index) => `<tr><td>${index + 1}</td><td>${escapeHtml(item.item || "-")}</td><td>${escapeHtml(item.hsn || "-")}</td><td class="text-right">${escapeHtml(item.qty ?? "-")}</td><td class="text-right">${formatCurrency(item.rate || 0)}</td><td class="text-right">${formatCurrency(item.taxable || 0)}</td><td class="text-right">${formatCurrency(item.total || 0)}</td></tr>`).join("")}
       </tbody>
     </table>
 
-    <section class="print-footer">
-      <div class="muted">Generated from Firestore record ${escapeHtml(record.id || "-")}.</div>
-      <div class="text-right">${signature}<strong>Authorized Signatory</strong></div>
+    <table class="summary">
+      <tbody>
+        ${key === KEYS.sales ? `<tr><td>Discount</td><td class="text-right">${formatCurrency(totals.discount)}</td></tr>` : ""}
+        <tr><td>Taxable Value</td><td class="text-right">${formatCurrency(totals.taxableValue)}</td></tr>
+        <tr><td>CGST</td><td class="text-right">${formatCurrency(totals.cgst)}</td></tr>
+        <tr><td>SGST</td><td class="text-right">${formatCurrency(totals.sgst)}</td></tr>
+        <tr><td>IGST</td><td class="text-right">${formatCurrency(totals.igst)}</td></tr>
+        <tr class="grand"><td>${escapeHtml(meta.amountLabel)}</td><td class="text-right">${formatCurrency(totals.grandTotal)}</td></tr>
+      </tbody>
+    </table>
+
+    <div class="amount-words"><strong>Amount in words:</strong> ${escapeHtml(totals.totalInWords)}</div>
+
+    <section class="footer">
+      <div class="terms">
+        <strong>Declaration:</strong> This document is generated from Firestore record ${escapeHtml(record.id || "-")} using the active company profile and app settings.
+      </div>
+      <div class="signature-box">${signature}<strong>Authorized Signatory</strong></div>
     </section>
   </main>
 </body>
 </html>`;
+}
+
+const INDIAN_ONES = ["", "One", "Two", "Three", "Four", "Five", "Six", "Seven", "Eight", "Nine", "Ten", "Eleven", "Twelve", "Thirteen", "Fourteen", "Fifteen", "Sixteen", "Seventeen", "Eighteen", "Nineteen"];
+const INDIAN_TENS = ["", "", "Twenty", "Thirty", "Forty", "Fifty", "Sixty", "Seventy", "Eighty", "Ninety"];
+
+function amountToIndianWords(amount) {
+  if (!Number.isFinite(amount) || amount <= 0) return "Zero Rupees Only";
+  const crore = Math.floor(amount / 10000000);
+  const lakh = Math.floor((amount % 10000000) / 100000);
+  const thousand = Math.floor((amount % 100000) / 1000);
+  const hundred = Math.floor((amount % 1000) / 100);
+  const rest = amount % 100;
+  const parts = [];
+  if (crore) parts.push(`${twoDigitWords(crore)} Crore`);
+  if (lakh) parts.push(`${twoDigitWords(lakh)} Lakh`);
+  if (thousand) parts.push(`${twoDigitWords(thousand)} Thousand`);
+  if (hundred) parts.push(`${INDIAN_ONES[hundred]} Hundred`);
+  if (rest) parts.push(twoDigitWords(rest));
+  return `${parts.join(" ")} Rupees Only`;
+}
+
+function twoDigitWords(value) {
+  if (value < 20) return INDIAN_ONES[value];
+  const tens = Math.floor(value / 10);
+  const ones = value % 10;
+  return [INDIAN_TENS[tens], INDIAN_ONES[ones]].filter(Boolean).join(" ");
 }
 
 async function printDocument(key, id) {
@@ -817,7 +1002,7 @@ async function downloadDocumentHtml(key, id) {
   const profile = await getCompanyProfileForDocument();
   const html = buildPrintableDocumentHtml(key, record, profile);
   const meta = getPrintableDocumentMeta(key);
-  const fileName = `${meta.title.toLowerCase().replace(/[^a-z0-9]+/g, "-")}-${(meta.recordNumber(record) || record.id || "document").toString().replace(/[^a-z0-9-]+/gi, "-")}.html`;
+  const fileName = `${meta.title.toLowerCase().replace(/[^a-z0-9]+/g, "-")}-${formatDocumentNumber(meta, record).replace(/[^a-z0-9-]+/gi, "-")}.html`;
   const link = document.createElement("a");
   link.href = URL.createObjectURL(new Blob([html], { type: "text/html" }));
   link.download = fileName;

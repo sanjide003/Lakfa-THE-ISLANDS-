@@ -1021,6 +1021,20 @@
           <label>Numbering Prefix</label>
           <input id="settings-numbering-prefix" class="form-control" placeholder="Example: INV, ORD, PRD">
         </div>
+
+        <div class="form-grid-2">
+          <div class="form-group">
+            <label>GST Rate (%)</label>
+            <input id="settings-gst-rate" type="number" class="form-control" min="0" max="28" step="0.01" placeholder="Example: 18">
+          </div>
+          <div class="form-group">
+            <label>Tax Mode</label>
+            <select id="settings-tax-mode" class="form-control">
+              <option value="inclusive">Inclusive</option>
+              <option value="exclusive">Exclusive</option>
+            </select>
+          </div>
+        </div>
         <div class="form-group">
           <label>Required Fields</label>
           <textarea id="settings-required-fields" class="form-control" rows="3" placeholder="One field per line: name, phone, amount"></textarea>
