@@ -639,13 +639,20 @@
                 <div class="form-group"><label>Full Address</label><textarea id="ord-address" class="form-control" rows="2" required></textarea></div>
                 <div class="form-group"><label>Location Link (Optional)</label><input type="url" id="ord-location" class="form-control"></div>
                 <hr class="modal-divider">
-                <h4>Order Items</h4>
-                <div class="order-item-row">
-                  <div class="form-group"><label>Product</label><select id="ord-product" class="form-control" required></select></div>
-                  <div class="form-group"><label>Price Type</label><select id="ord-price-type" class="form-control"><option value="with-gst">Including GST</option><option value="without-gst">Without GST</option><option value="promotion">Promotion / Free</option><option value="custom">Custom Amount</option></select></div>
-                  <div class="form-group"><label>Qty</label><input type="number" id="ord-qty" class="form-control" min="1" value="1" required></div>
-                  <div class="form-group"><label>Amount ₹</label><input type="number" id="ord-amount" class="form-control" step="0.01" required></div>
+                <div class="order-items-title-row">
+                  <h4>Order Items</h4>
+                  <button type="button" id="add-order-item-btn" class="btn-secondary btn-sm">+ Add Item</button>
                 </div>
+                <div id="order-items-container" class="order-items-container"></div>
+                <template id="order-item-template">
+                  <div class="order-item-row" data-order-item-row>
+                    <div class="form-group"><label>Product</label><select class="form-control order-product" required></select><small class="stock-availability">Stock: -</small></div>
+                    <div class="form-group"><label>Price Type</label><select class="form-control order-price-type"><option value="with-gst">Including GST</option><option value="without-gst">Without GST</option><option value="promotion">Promotion / Free</option><option value="custom">Custom Amount</option></select></div>
+                    <div class="form-group"><label>Qty</label><input type="number" class="form-control order-qty" min="1" value="1" required></div>
+                    <div class="form-group"><label>Amount ₹</label><input type="number" class="form-control order-amount" step="0.01" required></div>
+                    <div class="form-group"><label>&nbsp;</label><button type="button" class="btn-danger btn-sm remove-order-item-btn">Remove</button></div>
+                  </div>
+                </template>
                 <div class="form-grid-2">
                   <div class="form-group"><label>Delivery / Expense ₹</label><input type="number" id="ord-delivery" class="form-control" step="0.01" value="0"></div>
                   <div class="form-group"><label>Total Payable ₹</label><input type="number" id="ord-payable" class="form-control" readonly></div>

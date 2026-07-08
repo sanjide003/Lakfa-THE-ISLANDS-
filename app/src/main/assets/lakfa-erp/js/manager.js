@@ -759,6 +759,22 @@ function initOrderManagementUi() {
   ["orders-search", "orders-from-date", "orders-to-date"].forEach((id) => {
     document.getElementById(id)?.addEventListener("input", renderOrdersManagement);
   });
+  document.getElementById("add-order-item-btn")?.addEventListener("click", () => {
+    addOrderItemRow();
+    updateOrderTotals();
+  });
+  document.getElementById("order-items-container")?.addEventListener("input", handleOrderItemChange);
+  document.getElementById("order-items-container")?.addEventListener("change", handleOrderItemChange);
+  document.getElementById("order-items-container")?.addEventListener("click", (event) => {
+    if (!event.target.closest(".remove-order-item-btn")) return;
+    const rows = getOrderItemRows();
+    if (rows.length <= 1) {
+      showToast("At least one order item is required.", "info");
+      return;
+    }
+    event.target.closest("[data-order-item-row]")?.remove();
+    updateOrderTotals();
+  });
   document.getElementById("orders-table-body")?.addEventListener("click", (event) => {
     const target = event.target.closest("button");
     if (!target) return;
@@ -778,7 +794,7 @@ function initOrderManagementUi() {
     }
   });
 
-  ["ord-product", "ord-price-type", "ord-qty", "ord-amount", "ord-delivery", "ord-paid"].forEach((id) => {
+  ["ord-delivery", "ord-paid"].forEach((id) => {
     document.getElementById(id)?.addEventListener("input", updateOrderTotals);
     document.getElementById(id)?.addEventListener("change", updateOrderTotals);
   });
@@ -794,7 +810,7 @@ function openOrderModal() {
   form?.reset();
   currentEditId = null;
   setValue("ord-date", new Date().toISOString().slice(0, 10));
-  populateOrderProductOptions();
+  setOrderItems([{ qty: 1, priceType: "with-gst" }]);
   updateOrderTotals();
   modal.hidden = false;
   document.body.style.overflow = "hidden";
@@ -806,8 +822,45 @@ function closeOrderModal() {
   document.body.style.overflow = "";
 }
 
-function populateOrderProductOptions(selectedValue = "") {
-  const select = document.getElementById("ord-product");
+function handleOrderItemChange(event) {
+  const row = event.target.closest("[data-order-item-row]");
+  if (!row) return;
+  if (event.target.matches(".order-product, .order-price-type, .order-qty")) {
+    calculateOrderItemAmount(row);
+  }
+  updateOrderStockAvailability(row);
+  updateOrderTotals();
+}
+
+function getOrderItemRows() {
+  return [...document.querySelectorAll("#order-items-container [data-order-item-row]")];
+}
+
+function addOrderItemRow(item = {}) {
+  const container = document.getElementById("order-items-container");
+  const template = document.getElementById("order-item-template");
+  if (!container || !template) return null;
+
+  const row = template.content.firstElementChild.cloneNode(true);
+  container.appendChild(row);
+  populateOrderProductOptions(row.querySelector(".order-product"), item.name || item.product || "");
+  row.querySelector(".order-price-type").value = item.priceType || "with-gst";
+  row.querySelector(".order-qty").value = item.qty || item.quantity || 1;
+  row.querySelector(".order-amount").value = getNumberFromValue(item.amount).toFixed(2);
+  calculateOrderItemAmount(row, Boolean(item.amount));
+  updateOrderStockAvailability(row);
+  return row;
+}
+
+function setOrderItems(items = []) {
+  const container = document.getElementById("order-items-container");
+  if (!container) return;
+  container.innerHTML = "";
+  const normalizedItems = items.length ? items : [{ qty: 1, priceType: "with-gst" }];
+  normalizedItems.forEach((item) => addOrderItemRow(item));
+}
+
+function populateOrderProductOptions(select, selectedValue = "") {
   if (!select) return;
   const products = getStoredRecords(KEYS.products);
   select.innerHTML = `<option value="">-- Select Product --</option>`;
@@ -818,6 +871,8 @@ function populateOrderProductOptions(selectedValue = "") {
     option.dataset.salePrice = product.salePrice || product.mrp || 0;
     option.dataset.mrp = product.mrp || product.salePrice || 0;
     option.dataset.gstRate = product.gstRate || appSettings.modules?.orders?.gstRate || 0;
+    option.dataset.stock = product.currentStock || product.stock || 0;
+    option.dataset.unit = product.unit || "";
     select.appendChild(option);
   });
   if (selectedValue && ![...select.options].some((option) => option.value === selectedValue)) {
@@ -829,23 +884,57 @@ function populateOrderProductOptions(selectedValue = "") {
   select.value = selectedValue;
 }
 
-function updateOrderTotals() {
-  const productSelect = document.getElementById("ord-product");
+function calculateOrderItemAmount(row, preserveCustomAmount = false) {
+  const productSelect = row.querySelector(".order-product");
   const selectedOption = productSelect?.selectedOptions?.[0];
-  const priceType = getValue("ord-price-type");
-  const qty = Math.max(getNumber("ord-qty"), 1);
-  let unitAmount = getNumber("ord-amount");
+  const priceType = row.querySelector(".order-price-type")?.value || "with-gst";
+  const qty = Math.max(getNumberFromValue(row.querySelector(".order-qty")?.value), 1);
   const basePrice = getNumberFromValue(selectedOption?.dataset.salePrice);
   const gstRate = getNumberFromValue(selectedOption?.dataset.gstRate);
+  const amountInput = row.querySelector(".order-amount");
 
-  if (priceType !== "custom") {
+  if (priceType !== "custom" && !preserveCustomAmount) {
+    let unitAmount = basePrice;
     if (priceType === "promotion") unitAmount = 0;
-    if (priceType === "with-gst") unitAmount = basePrice;
     if (priceType === "without-gst") unitAmount = gstRate ? basePrice / (1 + gstRate / 100) : basePrice;
-    setValue("ord-amount", (unitAmount * qty).toFixed(2));
+    if (amountInput) amountInput.value = (unitAmount * qty).toFixed(2);
   }
+}
 
-  const amount = getNumber("ord-amount");
+function updateOrderStockAvailability(row) {
+  const selectedOption = row.querySelector(".order-product")?.selectedOptions?.[0];
+  const stockEl = row.querySelector(".stock-availability");
+  const qty = Math.max(getNumberFromValue(row.querySelector(".order-qty")?.value), 0);
+  const stock = getNumberFromValue(selectedOption?.dataset.stock);
+  const unit = selectedOption?.dataset.unit || "";
+  if (!stockEl) return;
+  stockEl.textContent = selectedOption?.value ? `Stock: ${stock} ${unit}` : "Stock: -";
+  stockEl.classList.toggle("low-stock", Boolean(selectedOption?.value) && qty > stock);
+}
+
+function getOrderItemsFromForm() {
+  return getOrderItemRows()
+    .map((row) => {
+      const productSelect = row.querySelector(".order-product");
+      const selectedOption = productSelect?.selectedOptions?.[0];
+      const qty = Math.max(getNumberFromValue(row.querySelector(".order-qty")?.value), 0);
+      const amount = getNumberFromValue(row.querySelector(".order-amount")?.value);
+      return {
+        name: productSelect?.value || "",
+        product: productSelect?.value || "",
+        priceType: row.querySelector(".order-price-type")?.value || "with-gst",
+        qty,
+        amount,
+        stockAvailable: getNumberFromValue(selectedOption?.dataset.stock),
+        unit: selectedOption?.dataset.unit || ""
+      };
+    })
+    .filter((item) => item.name && item.qty > 0);
+}
+
+function updateOrderTotals() {
+  const amount = getOrderItemsFromForm().reduce((sum, item) => sum + getNumberFromValue(item.amount), 0);
+
   const delivery = getNumber("ord-delivery");
   const paid = getNumber("ord-paid");
   const total = Math.max(amount + delivery, 0);
@@ -1932,9 +2021,10 @@ function initWritableFormListeners() {
     formId: "orders-form",
     key: KEYS.orders,
     submitButtonId: "orders-submit-btn",
-    validate: (data) => data.date && data.customer && data.phone && data.product && data.qty > 0 && data.totalPayable >= 0,
+    validate: (data) => data.date && data.customer && data.phone && data.items.length > 0 && data.totalPayable >= 0,
     getData: () => {
-      const amount = getNumber("ord-amount");
+      const items = getOrderItemsFromForm();
+      const amount = items.reduce((sum, item) => sum + getNumberFromValue(item.amount), 0);
       const deliveryCharge = getNumber("ord-delivery");
       const paidAmount = getNumber("ord-paid");
       const totalPayable = amount + deliveryCharge;
@@ -1951,9 +2041,9 @@ function initWritableFormListeners() {
         landmark: getValue("ord-landmark"),
         pincode: getValue("ord-pin"),
         locationLink: getValue("ord-location"),
-        product: getValue("ord-product"),
-        priceType: getValue("ord-price-type"),
-        qty: getNumber("ord-qty"),
+        product: items.map((item) => item.name).join(", "),
+        priceType: items.some((item) => item.priceType === "promotion") ? "promotion" : items[0]?.priceType || "with-gst",
+        qty: items.reduce((sum, item) => sum + getNumberFromValue(item.qty), 0),
         amount,
         deliveryCharge,
         expenseTotal: deliveryCharge,
@@ -1966,7 +2056,7 @@ function initWritableFormListeners() {
         orderStatus: getValue("ord-ostatus"),
         address: getValue("ord-address"),
         notes: getValue("ord-notes"),
-        items: [{ name: getValue("ord-product"), qty: getNumber("ord-qty"), priceType: getValue("ord-price-type"), amount }]
+        items
       };
     },
     populate: populateOrders,
@@ -2649,7 +2739,6 @@ function populateSales(record) {
 }
 
 function populateOrders(record) {
-  populateOrderProductOptions(record.product);
   setValue("ord-date", record.date);
   setValue("ord-source", record.source);
   setValue("ord-customer", record.customer);
@@ -2659,10 +2748,13 @@ function populateOrders(record) {
   setValue("ord-landmark", record.landmark);
   setValue("ord-pin", record.pincode || record.pin);
   setValue("ord-location", record.locationLink);
-  setValue("ord-product", record.product);
-  setValue("ord-price-type", record.priceType || "with-gst");
-  setValue("ord-qty", record.qty);
-  setValue("ord-amount", record.amount);
+  setOrderItems(Array.isArray(record.items) && record.items.length ? record.items : [{
+    name: record.product,
+    product: record.product,
+    priceType: record.priceType || "with-gst",
+    qty: record.qty || 1,
+    amount: record.amount || 0
+  }]);
   setValue("ord-delivery", record.deliveryCharge);
   setValue("ord-payable", record.totalPayable);
   setValue("ord-paid", record.paidAmount);

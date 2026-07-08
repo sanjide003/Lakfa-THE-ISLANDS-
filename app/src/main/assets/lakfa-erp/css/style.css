@@ -726,3 +726,14 @@ tr:hover td {
   .order-filter-bar, .order-item-row, .form-grid-3 { grid-template-columns: 1fr; }
   .order-actions { min-width: 180px; }
 }
+
+/* Stage 1.1 multiple order items */
+.order-items-title-row { display: flex; justify-content: space-between; align-items: center; gap: 1rem; margin-bottom: 0.75rem; }
+.order-items-container { display: flex; flex-direction: column; gap: 0.75rem; }
+.order-items-container .order-item-row { grid-template-columns: 2fr 1.2fr 0.55fr 1fr auto; border: 1px solid var(--border); border-radius: 8px; padding: 0.75rem; background: #f8fafc; }
+.stock-availability { display: block; margin-top: 0.25rem; color: var(--text-muted); font-size: 0.75rem; }
+.stock-availability.low-stock { color: var(--danger); font-weight: 700; }
+@media (max-width: 760px) {
+  .order-items-title-row { align-items: flex-start; flex-direction: column; }
+  .order-items-container .order-item-row { grid-template-columns: 1fr; }
+}
