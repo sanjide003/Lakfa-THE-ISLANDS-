@@ -10,6 +10,11 @@ const fail = (message) => {
 const firebaseDb = read('lakfa-erp/js/firebase-db.js');
 
 const releaseHardening = read('docs/PRODUCTION_RELEASE_HARDENING.md');
+
+const finalQaResults = read('docs/FINAL_LIVE_RELEASE_QA_RESULTS.md');
+['Smoke-test matrix result log', 'Vercel PWA', 'Firebase Auth/RBAC', 'Firestore rules', 'Admin CRUD', 'Android WebView', 'Failed item capture'].forEach((needle) => {
+  if (!finalQaResults.includes(needle)) fail(`Final live release QA results template is missing ${needle}`);
+});
 ['Vercel PWA deployment checklist', 'Firebase rules publish checklist', 'Android release checklist', 'Staging QA result template', 'Final smoke-test matrix', 'Known limitations', 'Operator handover guide'].forEach((needle) => {
   if (!releaseHardening.includes(needle)) fail(`Production release hardening guide is missing ${needle}`);
 });

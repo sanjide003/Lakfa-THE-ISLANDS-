@@ -30,6 +30,9 @@ Use this handover document before publishing the Lakfa ERP PWA to Vercel or pack
 
 ## 4. Staging QA result template
 
+Use `docs/FINAL_LIVE_RELEASE_QA_RESULTS.md` to record the actual live/staging execution results and failed item fixes.
+
+
 | Field | Value |
 | --- | --- |
 | QA date | |
