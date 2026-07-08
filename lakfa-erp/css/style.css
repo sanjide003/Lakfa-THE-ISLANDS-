@@ -737,3 +737,9 @@ tr:hover td {
   .order-items-title-row { align-items: flex-start; flex-direction: column; }
   .order-items-container .order-item-row { grid-template-columns: 1fr; }
 }
+
+/* Stage 1.3 order quick actions */
+.order-status-control { display: flex; flex-wrap: wrap; gap: 0.35rem; width: 100%; margin-bottom: 0.35rem; }
+.order-status-control select { min-width: 130px; padding: 0.35rem 0.45rem; font-size: 0.75rem; }
+.order-recycle-actions { display: flex; flex-wrap: wrap; gap: 0.35rem; min-width: 180px; }
+.order-payment-modal-card { width: min(520px, 100%); }

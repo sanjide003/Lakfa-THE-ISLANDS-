@@ -778,20 +778,21 @@ function initOrderManagementUi() {
   document.getElementById("orders-table-body")?.addEventListener("click", (event) => {
     const target = event.target.closest("button");
     if (!target) return;
-    const id = target.dataset.orderEdit || target.dataset.orderDelete || target.dataset.orderPrint || target.dataset.orderCopy || target.dataset.orderPayment;
+    const id = target.dataset.orderEdit || target.dataset.orderDelete || target.dataset.orderPrint || target.dataset.orderCopy || target.dataset.orderPayment || target.dataset.orderStatusUpdate || target.dataset.orderRestore || target.dataset.orderPermanentDelete;
     if (!id) return;
     if (target.dataset.orderEdit) {
       openOrderModal();
       loadRecordForEdit(KEYS.orders, id);
     }
-    if (target.dataset.orderDelete) deleteRecord(KEYS.orders, id);
+    if (target.dataset.orderDelete) softDeleteOrder(id);
     if (target.dataset.orderPrint) printDocument(KEYS.orders, id);
     if (target.dataset.orderCopy) copyNotificationMessage(KEYS.orders, id);
     if (target.dataset.orderPayment) {
-      openOrderModal();
-      loadRecordForEdit(KEYS.orders, id);
-      showToast("Update the first payment amount and save to adjust payment due.", "info");
+      openOrderPaymentModal(id);
     }
+    if (target.dataset.orderStatusUpdate) updateOrderStatusQuick(id);
+    if (target.dataset.orderRestore) restoreOrder(id);
+    if (target.dataset.orderPermanentDelete) permanentDeleteOrder(id);
   });
 
   ["ord-delivery", "ord-paid"].forEach((id) => {
@@ -801,6 +802,7 @@ function initOrderManagementUi() {
   ["ord-phone", "ord-customer"].forEach((id) => {
     document.getElementById(id)?.addEventListener("input", autofillOrderCustomer);
   });
+  initOrderPaymentModal();
 }
 
 function openOrderModal() {
@@ -820,6 +822,73 @@ function closeOrderModal() {
   const modal = document.getElementById("order-modal");
   if (modal) modal.hidden = true;
   document.body.style.overflow = "";
+}
+
+function initOrderPaymentModal() {
+  const modal = document.getElementById("order-payment-modal");
+  ["close-order-payment-modal-btn", "cancel-order-payment-modal-btn"].forEach((id) => {
+    document.getElementById(id)?.addEventListener("click", closeOrderPaymentModal);
+  });
+  modal?.addEventListener("click", (event) => {
+    if (event.target === modal) closeOrderPaymentModal();
+  });
+  ["pay-paid-amount", "pay-total"].forEach((id) => {
+    document.getElementById(id)?.addEventListener("input", updatePaymentModalTotals);
+  });
+  document.getElementById("order-payment-form")?.addEventListener("submit", async (event) => {
+    event.preventDefault();
+    const id = getValue("pay-order-id");
+    const order = getStoredRecords(KEYS.orders).find((record) => record.id === id);
+    if (!order) return;
+    const paidAmount = getNumber("pay-paid-amount");
+    const totalPayable = getNumberFromValue(order.totalPayable);
+    const updatedOrder = {
+      ...order,
+      paidAmount,
+      balanceDue: Math.max(totalPayable - paidAmount, 0),
+      advanceCredit: Math.max(paidAmount - totalPayable, 0),
+      paymentMode: getValue("pay-mode"),
+      paymentStatus: getValue("pay-status")
+    };
+    await saveOrderWorkflowUpdate(id, updatedOrder, order, "Payment updated.");
+    closeOrderPaymentModal();
+  });
+}
+
+function openOrderPaymentModal(id) {
+  const order = getStoredRecords(KEYS.orders).find((record) => record.id === id);
+  const modal = document.getElementById("order-payment-modal");
+  if (!order || !modal) return;
+  setValue("pay-order-id", id);
+  setValue("pay-total", getNumberFromValue(order.totalPayable).toFixed(2));
+  setValue("pay-current-paid", getNumberFromValue(order.paidAmount).toFixed(2));
+  setValue("pay-paid-amount", getNumberFromValue(order.paidAmount).toFixed(2));
+  setValue("pay-mode", order.paymentMode || "Cash");
+  setValue("pay-status", order.paymentStatus || "Pending");
+  updatePaymentModalTotals();
+  modal.hidden = false;
+  document.body.style.overflow = "hidden";
+}
+
+function closeOrderPaymentModal() {
+  const modal = document.getElementById("order-payment-modal");
+  if (modal) modal.hidden = true;
+  document.body.style.overflow = "";
+}
+
+function updatePaymentModalTotals() {
+  const total = getNumber("pay-total");
+  const paid = getNumber("pay-paid-amount");
+  const balance = Math.max(total - paid, 0);
+  const credit = Math.max(paid - total, 0);
+  setValue("pay-balance", balance.toFixed(2));
+  const status = document.getElementById("pay-status");
+  if (status) status.value = credit > 0 ? "Advance Credit" : paid <= 0 ? "Pending" : balance <= 0 ? "Paid" : "Partial";
+  const note = document.getElementById("pay-credit-note");
+  if (note) {
+    note.hidden = credit <= 0;
+    note.textContent = credit > 0 ? `Extra payment ${formatCurrency(credit)} will be saved as party advance credit.` : "";
+  }
 }
 
 function handleOrderItemChange(event) {
@@ -1044,7 +1113,19 @@ function renderOrderItems(order) {
 
 function renderOrderActions(order) {
   if (!isWritableKey(KEYS.orders)) return `<span style="color: var(--text-muted);">Read only</span>`;
+  if (order.deletedAt) {
+    return `<div class="order-recycle-actions">
+      <button class="btn-secondary btn-sm" type="button" data-order-restore="${order.id}">Restore</button>
+      <button class="btn-danger btn-sm" type="button" data-order-permanent-delete="${order.id}">Permanent Delete</button>
+    </div>`;
+  }
   return `<div class="order-actions">
+    <div class="order-status-control">
+      <select class="form-control" data-order-status-select="${order.id}">
+        ${["Pending", "Processing", "Shipped", "Delivered", "Cancelled", "Returned"].map((status) => `<option value="${status}" ${normalizeOrderStatus(order.orderStatus) === normalizeOrderStatus(status) ? "selected" : ""}>${status}</option>`).join("")}
+      </select>
+      <button class="btn-secondary btn-sm" type="button" data-order-status-update="${order.id}">Set</button>
+    </div>
     <button class="btn-secondary btn-sm" type="button" data-order-print="${order.id}">Label</button>
     <button class="btn-secondary btn-sm print-doc-btn" type="button" data-order-print="${order.id}">Bill</button>
     <button class="btn-secondary btn-sm copy-notification-btn" type="button" data-order-copy="${order.id}">Copy Msg</button>
@@ -1052,6 +1133,78 @@ function renderOrderActions(order) {
     <button class="btn-primary btn-sm" type="button" data-order-payment="${order.id}">Payment</button>
     <button class="btn-danger btn-sm delete-btn" type="button" data-order-delete="${order.id}">Delete</button>
   </div>`;
+}
+
+async function updateOrderStatusQuick(id) {
+  const order = getStoredRecords(KEYS.orders).find((record) => record.id === id);
+  const statusSelect = document.querySelector(`[data-order-status-select="${id}"]`);
+  if (!order || !statusSelect) return;
+  const updatedOrder = {
+    ...order,
+    orderStatus: statusSelect.value,
+    isCancelled: normalizeOrderStatus(statusSelect.value) === "cancelled",
+    isReturned: normalizeOrderStatus(statusSelect.value) === "returned"
+  };
+  await saveOrderWorkflowUpdate(id, updatedOrder, order, "Order status updated.");
+}
+
+async function softDeleteOrder(id) {
+  const order = getStoredRecords(KEYS.orders).find((record) => record.id === id);
+  if (!order || !confirm("Move this order to Recycle Bin? Stock reservations/deductions will be reversed.")) return;
+  const deletedOrder = {
+    ...order,
+    deletedAt: new Date().toISOString(),
+    deletedReason: "Moved to recycle bin"
+  };
+  await saveOrderWorkflowUpdate(id, deletedOrder, order, "Order moved to Recycle Bin.", { skipApply: true });
+}
+
+async function restoreOrder(id) {
+  const order = getStoredRecords(KEYS.orders).find((record) => record.id === id);
+  if (!order) return;
+  const restoredOrder = {
+    ...order,
+    deletedAt: null,
+    deletedReason: null
+  };
+  await saveOrderWorkflowUpdate(id, restoredOrder, null, "Order restored from Recycle Bin.");
+}
+
+async function permanentDeleteOrder(id) {
+  const order = getStoredRecords(KEYS.orders).find((record) => record.id === id);
+  if (!order || !confirm("Permanently delete this order? This cannot be undone.")) return;
+  try {
+    if (!order.deletedAt) {
+      await reconcileOrderInventoryAndLedger(null, { id, previous: order });
+    }
+    await deleteCollectionRecord(COLLECTIONS.orders, id);
+    showToast("Order permanently deleted.", "success");
+    await refreshActiveData();
+  } catch (err) {
+    console.error("Permanent order delete failed", err);
+    showToast(getFirebaseErrorMessage(err, "Unable to permanently delete order."), "error");
+  }
+}
+
+async function saveOrderWorkflowUpdate(id, updatedOrder, previousOrder, successMessage, options = {}) {
+  try {
+    const payload = { ...updatedOrder };
+    delete payload.id;
+    await updateCollectionRecord(COLLECTIONS.orders, id, payload);
+    await reconcileOrderInventoryAndLedger(options.skipApply ? null : updatedOrder, {
+      id,
+      previous: previousOrder,
+      moduleName: "Order",
+      amount: updatedOrder.paidAmount,
+      direction: "in",
+      reference: updatedOrder.customer
+    });
+    showToast(successMessage, "success");
+    await refreshActiveData();
+  } catch (err) {
+    console.error("Order workflow update failed", err);
+    showToast(getFirebaseErrorMessage(err, "Unable to update order workflow."), "error");
+  }
 }
 
 function getOrderStatusBadge(status) {
