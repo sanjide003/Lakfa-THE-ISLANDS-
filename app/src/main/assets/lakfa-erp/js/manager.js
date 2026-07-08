@@ -28,8 +28,16 @@ let currentEditId = null;
 let firestoreState = {};
 let activeSectionId = "dashboard";
 const READ_ONLY_MESSAGE = "This module is read-only until its Firestore write workflow is enabled.";
-const WRITABLE_FORM_IDS = new Set(["product-form", "customer-form", "supplier-form", "investors-form"]);
-const WRITABLE_KEYS = new Set([KEYS.products, KEYS.customers, KEYS.suppliers, KEYS.investors]);
+const WRITABLE_FORM_IDS = new Set([
+  "product-form", "customer-form", "supplier-form", "investors-form",
+  "purchase-form", "inventory-form", "sales-form", "orders-form", "delivery-form",
+  "expenses-form", "income-form", "cashbook-form", "bankbook-form"
+]);
+const WRITABLE_KEYS = new Set([
+  KEYS.products, KEYS.customers, KEYS.suppliers, KEYS.investors,
+  KEYS.purchases, KEYS.inventory, KEYS.sales, KEYS.orders, KEYS.delivery,
+  KEYS.expenses, KEYS.income, KEYS.cashBook, KEYS.bankBook
+]);
 
 const COLLECTION_BY_KEY = {
   [KEYS.products]: COLLECTIONS.products,
@@ -524,9 +532,13 @@ function renderCashBookTable() {
       <td style="color: var(--danger); font-weight: 500;">${row.cashOut > 0 ? '-' + formatCurrency(row.cashOut) : '-'}</td>
       <td><strong>${formatCurrency(row.balance)}</strong></td>
       <td>${row.ref || '-'}</td>
-      <td class="text-right" style="color: var(--text-muted);">Read only</td>
+      <td class="text-right" style="white-space: nowrap;">
+        <button class="btn-secondary btn-sm edit-btn" style="padding: 0.25rem 0.5rem; margin-right: 4px;">Edit</button>
+        <button class="btn-danger btn-sm delete-btn" style="padding: 0.25rem 0.5rem;">Delete</button>
+      </td>
     `;
-
+    tr.querySelector(".edit-btn").addEventListener("click", () => loadRecordForEdit(KEYS.cashBook, row.id));
+    tr.querySelector(".delete-btn").addEventListener("click", () => deleteRecord(KEYS.cashBook, row.id));
 
     tbody.appendChild(tr);
   });
@@ -558,9 +570,13 @@ function renderBankBookTable() {
       <td style="color: var(--danger);">${row.amountOut > 0 ? '-' + formatCurrency(row.amountOut) : '-'}</td>
       <td><strong>${formatCurrency(row.balance)}</strong></td>
       <td>${row.refNum || '-'}</td>
-      <td class="text-right" style="color: var(--text-muted);">Read only</td>
+      <td class="text-right" style="white-space: nowrap;">
+        <button class="btn-secondary btn-sm edit-btn" style="padding: 0.25rem 0.5rem; margin-right: 4px;">Edit</button>
+        <button class="btn-danger btn-sm delete-btn" style="padding: 0.25rem 0.5rem;">Delete</button>
+      </td>
     `;
-
+    tr.querySelector(".edit-btn").addEventListener("click", () => loadRecordForEdit(KEYS.bankBook, row.id));
+    tr.querySelector(".delete-btn").addEventListener("click", () => deleteRecord(KEYS.bankBook, row.id));
 
     tbody.appendChild(tr);
   });
@@ -731,6 +747,229 @@ function initWritableFormListeners() {
       setValue("inv-notes", record.notes);
     }
   });
+
+  setupFirestoreForm({
+    formId: "purchase-form",
+    key: KEYS.purchases,
+    submitButtonId: "purchase-submit-btn",
+    validate: (data) => data.date && data.invoice && data.supplier && data.item && data.qty > 0 && data.rate >= 0,
+    getData: () => {
+      const qty = getNumber("pur-qty");
+      const rate = getNumber("pur-rate");
+      return {
+        date: getValue("pur-date"),
+        invoice: getValue("pur-invoice"),
+        supplier: getValue("pur-supplier"),
+        item: getValue("pur-item"),
+        qty,
+        unit: getValue("pur-unit"),
+        rate,
+        totalAmount: qty * rate,
+        paymentMode: getValue("pur-mode"),
+        paymentStatus: getValue("pur-status"),
+        notes: getValue("pur-notes")
+      };
+    },
+    populate: populatePurchase,
+    afterSave: async (data, meta) => {
+      if (!meta.isUpdate) {
+        await adjustInventoryStock(data.item, data.qty, "purchase", data.invoice);
+        await createLedgerEntryFromPayment(data, "Purchase", data.totalAmount, "out", data.invoice);
+      }
+    }
+  });
+
+  setupFirestoreForm({
+    formId: "inventory-form",
+    key: KEYS.inventory,
+    submitButtonId: "inventory-submit-btn",
+    validate: (data) => data.name && data.category && data.unit && data.currentStock >= 0,
+    getData: () => ({
+      name: getValue("stk-name"),
+      category: getValue("stk-category"),
+      type: getValue("stk-type"),
+      openingStock: getNumber("stk-opening"),
+      stockIn: getNumber("stk-in"),
+      stockOut: getNumber("stk-out"),
+      currentStock: getNumber("stk-current"),
+      unit: getValue("stk-unit"),
+      minAlert: getNumber("stk-min"),
+      lastUpdated: getValue("stk-date")
+    }),
+    populate: populateInventory
+  });
+
+  setupFirestoreForm({
+    formId: "sales-form",
+    key: KEYS.sales,
+    submitButtonId: "sales-submit-btn",
+    validate: (data) => data.date && data.customer && data.product && data.qty > 0 && data.rate >= 0,
+    getData: () => {
+      const qty = getNumber("sale-qty");
+      const rate = getNumber("sale-rate");
+      const totalAmount = qty * rate;
+      const discount = getNumber("sale-discount");
+      return {
+        date: getValue("sale-date"),
+        customer: getValue("sale-customer"),
+        product: getValue("sale-product"),
+        qty,
+        rate,
+        totalAmount,
+        discount,
+        finalAmount: Math.max(totalAmount - discount, 0),
+        paymentMode: getValue("sale-mode"),
+        paymentStatus: getValue("sale-status"),
+        notes: getValue("sale-notes")
+      };
+    },
+    populate: populateSales,
+    afterSave: async (data, meta) => {
+      if (!meta.isUpdate) {
+        await adjustInventoryStock(data.product, -data.qty, "sale", data.customer);
+        await createLedgerEntryFromPayment(data, "Sales", data.finalAmount, "in", data.customer);
+      }
+    }
+  });
+
+  setupFirestoreForm({
+    formId: "orders-form",
+    key: KEYS.orders,
+    submitButtonId: "orders-submit-btn",
+    validate: (data) => data.date && data.customer && data.phone && data.product && data.qty > 0 && data.totalPayable >= 0,
+    getData: () => {
+      const amount = getNumber("ord-amount");
+      const deliveryCharge = getNumber("ord-delivery");
+      return {
+        date: getValue("ord-date"),
+        source: getValue("ord-source"),
+        customer: getValue("ord-customer"),
+        phone: getValue("ord-phone"),
+        product: getValue("ord-product"),
+        qty: getNumber("ord-qty"),
+        amount,
+        deliveryCharge,
+        totalPayable: amount + deliveryCharge,
+        paymentStatus: getValue("ord-pstatus"),
+        orderStatus: getValue("ord-ostatus"),
+        address: getValue("ord-address"),
+        notes: getValue("ord-notes")
+      };
+    },
+    populate: populateOrders,
+    afterSave: async (data, meta) => {
+      if (!meta.isUpdate) {
+        await createLedgerEntryFromPayment(data, "Order", data.totalPayable, "in", data.customer);
+      }
+    }
+  });
+
+  setupFirestoreForm({
+    formId: "delivery-form",
+    key: KEYS.delivery,
+    submitButtonId: "delivery-submit-btn",
+    validate: (data) => data.orderId && data.customer && data.charge >= 0 && data.dispatchDate,
+    getData: () => ({
+      orderId: getValue("dlv-order"),
+      customer: getValue("dlv-customer"),
+      partner: getValue("dlv-partner"),
+      trackingId: getValue("dlv-tracking"),
+      charge: getNumber("dlv-charge"),
+      dispatchDate: getValue("dlv-dispatch"),
+      status: getValue("dlv-status"),
+      deliveredDate: getValue("dlv-delivered"),
+      notes: getValue("dlv-notes")
+    }),
+    populate: populateDelivery
+  });
+
+  setupFirestoreForm({
+    formId: "expenses-form",
+    key: KEYS.expenses,
+    submitButtonId: "expenses-submit-btn",
+    validate: (data) => data.date && data.desc && data.amount > 0 && data.paidTo,
+    getData: () => ({
+      date: getValue("exp-date"),
+      category: getValue("exp-cat"),
+      desc: getValue("exp-desc"),
+      amount: getNumber("exp-amount"),
+      mode: getValue("exp-mode"),
+      paidTo: getValue("exp-paid"),
+      receipt: getValue("exp-receipt"),
+      notes: getValue("exp-notes")
+    }),
+    populate: populateExpenses,
+    afterSave: async (data, meta) => {
+      if (!meta.isUpdate) {
+        await createLedgerEntryFromPayment(data, "Expense", data.amount, "out", data.receipt || data.paidTo);
+      }
+    }
+  });
+
+  setupFirestoreForm({
+    formId: "income-form",
+    key: KEYS.income,
+    submitButtonId: "income-submit-btn",
+    validate: (data) => data.date && data.desc && data.amount > 0 && data.receivedFrom,
+    getData: () => ({
+      date: getValue("inc-date"),
+      source: getValue("inc-source"),
+      desc: getValue("inc-desc"),
+      amount: getNumber("inc-amount"),
+      mode: getValue("inc-mode"),
+      receivedFrom: getValue("inc-received"),
+      notes: getValue("inc-notes")
+    }),
+    populate: populateIncome,
+    afterSave: async (data, meta) => {
+      if (!meta.isUpdate) {
+        await createLedgerEntryFromPayment(data, "Income", data.amount, "in", data.receivedFrom);
+      }
+    }
+  });
+
+  setupFirestoreForm({
+    formId: "cashbook-form",
+    key: KEYS.cashBook,
+    submitButtonId: "cashbook-submit-btn",
+    validate: (data) => data.date && data.desc && (data.cashIn > 0 || data.cashOut > 0),
+    getData: () => {
+      const type = getValue("cb-type");
+      const amount = getNumber("cb-amount");
+      return {
+        date: getValue("cb-date"),
+        type,
+        desc: getValue("cb-desc"),
+        cashIn: type === "Cash In" ? amount : 0,
+        cashOut: type === "Cash Out" ? amount : 0,
+        balance: getProjectedCashBalance(type === "Cash In" ? amount : -amount),
+        ref: getValue("cb-ref")
+      };
+    },
+    populate: populateCashBook
+  });
+
+  setupFirestoreForm({
+    formId: "bankbook-form",
+    key: KEYS.bankBook,
+    submitButtonId: "bankbook-submit-btn",
+    validate: (data) => data.date && data.bankName && data.desc && data.refNum && (data.amountIn > 0 || data.amountOut > 0),
+    getData: () => {
+      const type = getValue("bb-type");
+      const amount = getNumber("bb-amount");
+      return {
+        date: getValue("bb-date"),
+        bankName: getValue("bb-bank"),
+        type,
+        desc: getValue("bb-desc"),
+        amountIn: type === "Amount In" ? amount : 0,
+        amountOut: type === "Amount Out" ? amount : 0,
+        balance: getProjectedBankBalance(type === "Amount In" ? amount : -amount),
+        refNum: getValue("bb-ref")
+      };
+    },
+    populate: populateBankBook
+  });
 }
 
 function setupFirestoreForm(config) {
@@ -749,12 +988,17 @@ function setupFirestoreForm(config) {
     if (button) button.disabled = true;
 
     try {
-      if (currentEditId && activeSectionKey() === config.key) {
+      let savedId = currentEditId;
+      const isUpdate = Boolean(currentEditId && activeSectionKey() === config.key);
+      if (isUpdate) {
         await updateCollectionRecord(COLLECTION_BY_KEY[config.key], currentEditId, data);
         showToast("Record updated in Firebase.", "success");
       } else {
-        await createCollectionRecord(COLLECTION_BY_KEY[config.key], data);
+        savedId = await createCollectionRecord(COLLECTION_BY_KEY[config.key], data);
         showToast("Record created in Firebase.", "success");
+      }
+      if (config.afterSave) {
+        await config.afterSave(data, { id: savedId, isUpdate });
       }
       currentEditId = null;
       form.reset();
@@ -802,6 +1046,80 @@ async function deleteRecord(key, id) {
     console.error("Firestore delete failed", err);
     showToast("Firebase delete failed. Please check permissions.", "error");
   }
+}
+
+async function adjustInventoryStock(itemName, quantityDelta, sourceType, sourceRef) {
+  if (!itemName || !quantityDelta) return;
+
+  const inventoryRecord = getStoredRecords(KEYS.inventory).find((item) =>
+    (item.name || "").toLowerCase() === itemName.toLowerCase()
+  );
+
+  if (!inventoryRecord?.id) return;
+
+  const currentStock = getNumberFromValue(inventoryRecord.currentStock);
+  const stockIn = Math.max(quantityDelta, 0);
+  const stockOut = Math.max(-quantityDelta, 0);
+  await updateCollectionRecord(COLLECTIONS.inventory, inventoryRecord.id, {
+    currentStock: Math.max(currentStock + quantityDelta, 0),
+    stockIn: getNumberFromValue(inventoryRecord.stockIn) + stockIn,
+    stockOut: getNumberFromValue(inventoryRecord.stockOut) + stockOut,
+    lastUpdated: new Date().toISOString().slice(0, 10),
+    lastStockSource: sourceType,
+    lastStockRef: sourceRef || ""
+  });
+}
+
+async function createLedgerEntryFromPayment(data, moduleName, amount, direction, reference) {
+  if (!amount || data.paymentStatus === "Pending") return;
+
+  const paymentMode = data.paymentMode || data.mode || "Cash";
+  const desc = `${moduleName}: ${data.desc || data.item || data.product || data.customer || reference || "Record"}`;
+  const isIn = direction === "in";
+
+  if (paymentMode === "Cash") {
+    await createCollectionRecord(COLLECTIONS.cashBook, {
+      date: data.date || new Date().toISOString().slice(0, 10),
+      type: isIn ? "Cash In" : "Cash Out",
+      desc,
+      cashIn: isIn ? amount : 0,
+      cashOut: isIn ? 0 : amount,
+      balance: getProjectedCashBalance(isIn ? amount : -amount),
+      ref: reference || moduleName,
+      sourceModule: moduleName
+    });
+    return;
+  }
+
+  if (["Bank", "UPI", "Card"].includes(paymentMode)) {
+    await createCollectionRecord(COLLECTIONS.bankBook, {
+      date: data.date || new Date().toISOString().slice(0, 10),
+      bankName: paymentMode,
+      type: isIn ? "Amount In" : "Amount Out",
+      desc,
+      amountIn: isIn ? amount : 0,
+      amountOut: isIn ? 0 : amount,
+      balance: getProjectedBankBalance(isIn ? amount : -amount),
+      refNum: reference || moduleName,
+      sourceModule: moduleName
+    });
+  }
+}
+
+function getProjectedCashBalance(delta) {
+  const records = getStoredRecords(KEYS.cashBook);
+  const current = records.length ? getNumberFromValue(records[records.length - 1].balance) : 0;
+  const existing = currentEditId ? records.find((record) => record.id === currentEditId) : null;
+  const oldDelta = existing ? getNumberFromValue(existing.cashIn) - getNumberFromValue(existing.cashOut) : 0;
+  return current - oldDelta + delta;
+}
+
+function getProjectedBankBalance(delta) {
+  const records = getStoredRecords(KEYS.bankBook);
+  const current = records.length ? getNumberFromValue(records[records.length - 1].balance) : 0;
+  const existing = currentEditId ? records.find((record) => record.id === currentEditId) : null;
+  const oldDelta = existing ? getNumberFromValue(existing.amountIn) - getNumberFromValue(existing.amountOut) : 0;
+  return current - oldDelta + delta;
 }
 
 function getFormConfigForKey(key) {
@@ -861,9 +1179,125 @@ function getFormConfigForKey(key) {
         setValue("inv-status", record.status);
         setValue("inv-notes", record.notes);
       }
-    }
+    },
+    [KEYS.purchases]: { submitButtonId: "purchase-submit-btn", populate: populatePurchase },
+    [KEYS.inventory]: { submitButtonId: "inventory-submit-btn", populate: populateInventory },
+    [KEYS.sales]: { submitButtonId: "sales-submit-btn", populate: populateSales },
+    [KEYS.orders]: { submitButtonId: "orders-submit-btn", populate: populateOrders },
+    [KEYS.delivery]: { submitButtonId: "delivery-submit-btn", populate: populateDelivery },
+    [KEYS.expenses]: { submitButtonId: "expenses-submit-btn", populate: populateExpenses },
+    [KEYS.income]: { submitButtonId: "income-submit-btn", populate: populateIncome },
+    [KEYS.cashBook]: { submitButtonId: "cashbook-submit-btn", populate: populateCashBook },
+    [KEYS.bankBook]: { submitButtonId: "bankbook-submit-btn", populate: populateBankBook }
   };
   return formMap[key];
+}
+
+function populatePurchase(record) {
+  setValue("pur-date", record.date);
+  setValue("pur-invoice", record.invoice);
+  setValue("pur-supplier", record.supplier);
+  setValue("pur-item", record.item);
+  setValue("pur-qty", record.qty);
+  setValue("pur-unit", record.unit);
+  setValue("pur-rate", record.rate);
+  setValue("pur-total", record.totalAmount);
+  setValue("pur-mode", record.paymentMode);
+  setValue("pur-status", record.paymentStatus);
+  setValue("pur-notes", record.notes);
+}
+
+function populateInventory(record) {
+  setValue("stk-name", record.name);
+  setValue("stk-category", record.category);
+  setValue("stk-type", record.type);
+  setValue("stk-opening", record.openingStock);
+  setValue("stk-in", record.stockIn);
+  setValue("stk-out", record.stockOut);
+  setValue("stk-current", record.currentStock);
+  setValue("stk-unit", record.unit);
+  setValue("stk-min", record.minAlert);
+  setValue("stk-date", record.lastUpdated);
+}
+
+function populateSales(record) {
+  setValue("sale-date", record.date);
+  setValue("sale-customer", record.customer);
+  setValue("sale-product", record.product);
+  setValue("sale-qty", record.qty);
+  setValue("sale-rate", record.rate);
+  setValue("sale-total", record.totalAmount);
+  setValue("sale-discount", record.discount);
+  setValue("sale-final", record.finalAmount);
+  setValue("sale-mode", record.paymentMode);
+  setValue("sale-status", record.paymentStatus);
+  setValue("sale-notes", record.notes);
+}
+
+function populateOrders(record) {
+  setValue("ord-date", record.date);
+  setValue("ord-source", record.source);
+  setValue("ord-customer", record.customer);
+  setValue("ord-phone", record.phone);
+  setValue("ord-product", record.product);
+  setValue("ord-qty", record.qty);
+  setValue("ord-amount", record.amount);
+  setValue("ord-delivery", record.deliveryCharge);
+  setValue("ord-payable", record.totalPayable);
+  setValue("ord-pstatus", record.paymentStatus);
+  setValue("ord-ostatus", record.orderStatus);
+  setValue("ord-address", record.address);
+  setValue("ord-notes", record.notes);
+}
+
+function populateDelivery(record) {
+  setValue("dlv-order", record.orderId);
+  setValue("dlv-customer", record.customer);
+  setValue("dlv-partner", record.partner);
+  setValue("dlv-tracking", record.trackingId);
+  setValue("dlv-charge", record.charge);
+  setValue("dlv-dispatch", record.dispatchDate);
+  setValue("dlv-status", record.status);
+  setValue("dlv-delivered", record.deliveredDate);
+  setValue("dlv-notes", record.notes);
+}
+
+function populateExpenses(record) {
+  setValue("exp-date", record.date);
+  setValue("exp-cat", record.category);
+  setValue("exp-desc", record.desc);
+  setValue("exp-amount", record.amount);
+  setValue("exp-mode", record.mode);
+  setValue("exp-paid", record.paidTo);
+  setValue("exp-receipt", record.receipt);
+  setValue("exp-notes", record.notes);
+}
+
+function populateIncome(record) {
+  setValue("inc-date", record.date);
+  setValue("inc-source", record.source);
+  setValue("inc-desc", record.desc);
+  setValue("inc-amount", record.amount);
+  setValue("inc-mode", record.mode);
+  setValue("inc-received", record.receivedFrom);
+  setValue("inc-notes", record.notes);
+}
+
+function populateCashBook(record) {
+  setValue("cb-date", record.date);
+  setValue("cb-type", record.type);
+  setValue("cb-desc", record.desc);
+  setValue("cb-amount", record.cashIn > 0 ? record.cashIn : record.cashOut);
+  setValue("cb-ref", record.ref);
+}
+
+function populateBankBook(record) {
+  setValue("bb-date", record.date);
+  setValue("bb-bank", record.bankName);
+  setValue("bb-type", record.type);
+  setValue("bb-desc", record.desc);
+  setValue("bb-amount", record.amountIn > 0 ? record.amountIn : record.amountOut);
+  setValue("bb-ref", record.refNum);
 }
 
 function activeSectionKey() {
@@ -871,7 +1305,16 @@ function activeSectionKey() {
     products: KEYS.products,
     customers: KEYS.customers,
     suppliers: KEYS.suppliers,
-    investors: KEYS.investors
+    investors: KEYS.investors,
+    purchase: KEYS.purchases,
+    inventory: KEYS.inventory,
+    sales: KEYS.sales,
+    orders: KEYS.orders,
+    delivery: KEYS.delivery,
+    expenses: KEYS.expenses,
+    income: KEYS.income,
+    cashbook: KEYS.cashBook,
+    bankbook: KEYS.bankBook
   }[activeSectionId];
 }
 
@@ -886,7 +1329,11 @@ function getValue(id) {
 }
 
 function getNumber(id) {
-  const value = parseFloat(document.getElementById(id)?.value || "0");
+  return getNumberFromValue(document.getElementById(id)?.value);
+}
+
+function getNumberFromValue(rawValue) {
+  const value = parseFloat(rawValue || "0");
   return Number.isFinite(value) ? value : 0;
 }
 

@@ -120,6 +120,6 @@ Deploying this project to Vercel takes less than a minute and requires no comman
 ---
 
 ## 🔮 Future Roadmap (Phase 2 Development)
-*   **Firestore Write Workflows:** Products, customers, suppliers, and investors now support admin create/update/delete with audit fields. Remaining operational modules stay read-only until their write workflows are implemented.
+*   **Firestore Write Workflows:** Products, customers, suppliers, investors, purchases, inventory, sales, orders, delivery, expenses, income, cashbook, and bankbook now support admin create/update/delete with audit fields. Sales/purchases can update matching inventory stock and paid cash/bank entries create ledger records automatically; production and profit-sharing remain read-only until their write workflows are implemented.
 *   **Invoicing & GST Forms:** Automatically generate professional PDFs and compile GSTR-1 summaries.
 *   **WhatsApp CRM:** Trigger automated dispatch alerts, delivery trackers, and confirmation messages directly to customer phone numbers.

@@ -55,6 +55,51 @@ service cloud.firestore {
       allow write: if isAdmin();
     }
 
+    match /purchases/{recordId} {
+      allow read: if isAdmin() || isInvestor();
+      allow write: if isAdmin();
+    }
+
+    match /inventory/{recordId} {
+      allow read: if isAdmin() || isInvestor();
+      allow write: if isAdmin();
+    }
+
+    match /sales/{recordId} {
+      allow read: if isAdmin() || isInvestor();
+      allow write: if isAdmin();
+    }
+
+    match /orders/{recordId} {
+      allow read: if isAdmin() || isInvestor();
+      allow write: if isAdmin();
+    }
+
+    match /deliveries/{recordId} {
+      allow read: if isAdmin() || isInvestor();
+      allow write: if isAdmin();
+    }
+
+    match /expenses/{recordId} {
+      allow read: if isAdmin() || isInvestor();
+      allow write: if isAdmin();
+    }
+
+    match /income/{recordId} {
+      allow read: if isAdmin() || isInvestor();
+      allow write: if isAdmin();
+    }
+
+    match /cashbook/{recordId} {
+      allow read: if isAdmin() || isInvestor();
+      allow write: if isAdmin();
+    }
+
+    match /bankbook/{recordId} {
+      allow read: if isAdmin() || isInvestor();
+      allow write: if isAdmin();
+    }
+
     // Admins can fully manage operational ERP data.
     // Investors can read reports/ledger data only; client UI must remain read-only.
     match /{document=**} {
