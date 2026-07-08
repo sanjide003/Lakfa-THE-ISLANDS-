@@ -44,27 +44,51 @@ The system is protected by a strict **Role-Based Access Control (RBAC)** guard:
 
 ---
 
-## ⚠️ Security Warning
+## ⚠️ Production Readiness
 
-> [!CAUTION]
-> **This first version is for testing/demo only.** Do not enter real customer, accounting, investor, or company data until Firebase Security Rules are properly configured.
+The web app is now wired to the Firebase project `fest-21d67`. Before entering real customer, accounting, investor, or company data, make sure the Firebase Console has:
 
-### Planned Firestore Security Rules
-Ensure these rules are applied in your Firebase Console under the **Firestore Rules** tab:
+1. Email/password authentication enabled.
+2. Admin and investor accounts created.
+3. Matching `users/{uid}` Firestore role documents created.
+4. The rules in `firestore.rules` published to Firestore.
+
+### Firestore Security Rules
+The production rules are stored in `firestore.rules`. Apply the same rules in your Firebase Console under the **Firestore Rules** tab:
 ```javascript
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
-    // Read user role metadata
-    match /users/{userId} {
-      allow read: if request.auth != null && request.auth.uid == userId;
-      allow write: if request.auth != null && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin';
+    function isSignedIn() {
+      return request.auth != null;
     }
-    
-    // Admin has full read/write, Investors can only read their matching records
+
+    function currentUserDoc() {
+      return get(/databases/$(database)/documents/users/$(request.auth.uid));
+    }
+
+    function hasActiveRole(role) {
+      return isSignedIn()
+        && currentUserDoc().data.status == 'active'
+        && currentUserDoc().data.role == role;
+    }
+
+    function isAdmin() {
+      return hasActiveRole('admin');
+    }
+
+    function isInvestor() {
+      return hasActiveRole('investor');
+    }
+
+    match /users/{userId} {
+      allow read: if isSignedIn() && (request.auth.uid == userId || isAdmin());
+      allow create, update, delete: if isAdmin();
+    }
+
     match /{document=**} {
-      allow read, write: if request.auth != null && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin';
-      allow read: if request.auth != null && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'investor';
+      allow read: if isAdmin() || isInvestor();
+      allow write: if isAdmin();
     }
   }
 }
@@ -73,7 +97,7 @@ service cloud.firestore {
 ---
 
 ## ⚡ Quick Evaluation & Testing (Demo Mode)
-If the Firebase SDK is unconfigured, the application runs in a local-storage **Demo Mode**. You can log in using these preset credentials:
+Demo Mode is available only when `lakfa-erp/js/firebase-config.js` contains placeholder Firebase values. This branch uses the live `fest-21d67` Firebase config, so production login requires Firebase Authentication users and Firestore role documents. For local experiments, you can temporarily restore placeholder values and log in using these preset credentials:
 
 *   **Administrator Account:**
     *   **Email:** `admin@lakfa.com`

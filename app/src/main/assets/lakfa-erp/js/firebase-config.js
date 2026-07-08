@@ -3,14 +3,15 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebas
 import { getAuth } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
 import { getFirestore } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
-// Placeholder configuration, which users will update via FIREBASE_SETUP instructions
+// Production Firebase project configuration for Lakfa ERP.
 export const firebaseConfig = {
-  apiKey: "YOUR_FIREBASE_API_KEY",
-  authDomain: "YOUR_FIREBASE_AUTH_DOMAIN",
-  projectId: "YOUR_FIREBASE_PROJECT_ID",
-  storageBucket: "YOUR_FIREBASE_STORAGE_BUCKET",
-  messagingSenderId: "YOUR_FIREBASE_MESSAGING_SENDER_ID",
-  appId: "YOUR_FIREBASE_APP_ID"
+  apiKey: "AIzaSyCOT73k7YWxlh0qYFYGKa1W_NW29LjwsgQ",
+  authDomain: "fest-21d67.firebaseapp.com",
+  projectId: "fest-21d67",
+  storageBucket: "fest-21d67.firebasestorage.app",
+  messagingSenderId: "476270819694",
+  appId: "1:476270819694:web:2689cf709656cfde1d697f",
+  measurementId: "G-93HHHL4H2P"
 };
 
 // Initialize Firebase App

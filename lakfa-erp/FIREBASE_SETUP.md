@@ -1,52 +1,27 @@
 # Google Firebase Setup Guide for Lakfa ERP
 
-Follow these step-by-step instructions to connect Lakfa ERP to your live Google Firebase database.
+Lakfa ERP is already configured to use the Firebase project `fest-21d67` in `lakfa-erp/js/firebase-config.js`. Use this guide to finish the Firebase Console setup that cannot be committed to the repository: Authentication users, Firestore role documents, and Firestore Security Rules.
 
 ---
 
-## Step 1: Create a Firebase Project
-1.  Navigate to the [Google Firebase Console](https://console.firebase.google.com).
-2.  Click **"Add Project"**.
-3.  Name the project **"Lakfa ERP"** (or any preferred descriptor).
-4.  Configure Google Analytics options based on preference and click **"Create Project"**.
+## Current Firebase Web App Configuration
+The committed app uses this Firebase web configuration:
+
+```javascript
+export const firebaseConfig = {
+  apiKey: "AIzaSyCOT73k7YWxlh0qYFYGKa1W_NW29LjwsgQ",
+  authDomain: "fest-21d67.firebaseapp.com",
+  projectId: "fest-21d67",
+  storageBucket: "fest-21d67.firebasestorage.app",
+  messagingSenderId: "476270819694",
+  appId: "1:476270819694:web:2689cf709656cfde1d697f",
+  measurementId: "G-93HHHL4H2P"
+};
+```
 
 ---
 
-## Step 2: Register your Web App
-1.  Once inside the project dashboard, click the **Web icon (`</>`)** to add an application.
-2.  Enter the App Nickname: **"Lakfa ERP Portal"**.
-3.  Click **"Register App"**.
-4.  You will be shown a `firebaseConfig` object similar to this:
-    ```javascript
-    const firebaseConfig = {
-      apiKey: "AIzaSyD...",
-      authDomain: "lakfa-erp.firebaseapp.com",
-      projectId: "lakfa-erp",
-      storageBucket: "lakfa-erp.appspot.com",
-      messagingSenderId: "123456789...",
-      appId: "1:12345:web:abcd..."
-    };
-    ```
-
----
-
-## Step 3: Paste Configurations into Lakfa ERP
-1.  Open the file `lakfa-erp/js/firebase-config.js` in your text editor.
-2.  Replace the placeholder values in the `firebaseConfig` object with your actual keys from the Firebase Console:
-    ```javascript
-    export const firebaseConfig = {
-      apiKey: "YOUR_ACTUAL_API_KEY",
-      authDomain: "YOUR_ACTUAL_AUTH_DOMAIN",
-      projectId: "YOUR_ACTUAL_PROJECT_ID",
-      storageBucket: "YOUR_ACTUAL_STORAGE_BUCKET",
-      messagingSenderId: "YOUR_ACTUAL_SENDER_ID",
-      appId: "YOUR_ACTUAL_APP_ID"
-    };
-    ```
-
----
-
-## Step 4: Enable Email/Password Authentication
+## Step 1: Enable Email/Password Authentication
 1.  In the Firebase left-hand sidebar, select **"Build"** → **"Authentication"**.
 2.  Click **"Get Started"**.
 3.  Select the **"Sign-in method"** tab.
@@ -55,7 +30,7 @@ Follow these step-by-step instructions to connect Lakfa ERP to your live Google 
 
 ---
 
-## Step 5: Provision Users in Authentication
+## Step 2: Provision Users in Authentication
 Now, create login entries for your team and investors.
 1.  Go to the **"Users"** tab inside the Authentication dashboard.
 2.  Click **"Add User"**.
@@ -70,7 +45,7 @@ Now, create login entries for your team and investors.
 
 ---
 
-## Step 6: Create Firestore Users Collection
+## Step 3: Create Firestore Users Collection
 The system uses Firestore to verify what role each authenticated UID is assigned to.
 1.  In the left sidebar, click **"Build"** → **"Firestore Database"**.
 2.  Click **"Create Database"**.
@@ -78,7 +53,7 @@ The system uses Firestore to verify what role each authenticated UID is assigned
 4.  Click **"Start Collection"**.
 5.  Name the collection: `users`
 6.  **Create the Admin Document:**
-    *   **Document ID:** Paste the exact **User UID** of your admin user from Step 5.
+    *   **Document ID:** Paste the exact **User UID** of your admin user from Step 2.
     *   Add fields:
         *   `name` (string): `Admin User`
         *   `email` (string): `admin@lakfa.com`
@@ -86,7 +61,7 @@ The system uses Firestore to verify what role each authenticated UID is assigned
         *   `status` (string): `active`
 7.  **Create the Investor Document:**
     *   Click **"Add Document"** inside the `users` collection.
-    *   **Document ID:** Paste the exact **User UID** of your investor user from Step 5.
+    *   **Document ID:** Paste the exact **User UID** of your investor user from Step 2.
     *   Add fields:
         *   `name` (string): `Investor User`
         *   `email` (string): `investor@lakfa.com`
@@ -96,5 +71,21 @@ The system uses Firestore to verify what role each authenticated UID is assigned
 
 ---
 
-## Step 7: Test live login
-Once authentication accounts and Firestore records are created, refresh your Lakfa ERP login page. The app will connect directly to Google Firebase and direct your staff to their respective dashboards based on their role metadata.
+## Step 4: Publish Firestore Security Rules
+1. In the Firebase left-hand sidebar, select **"Build"** → **"Firestore Database"**.
+2. Open the **"Rules"** tab.
+3. Copy the contents of `lakfa-erp/firestore.rules`.
+4. Paste the rules into the Firebase Console rules editor.
+5. Click **"Publish"**.
+
+---
+
+## Step 5: Test Live Login
+Once authentication accounts, Firestore role records, and Firestore rules are created, refresh your Lakfa ERP login page. The app will connect directly to Google Firebase and direct your staff to their respective dashboards based on their role metadata.
+
+### Production Verification Checklist
+- Demo Mode banner should not appear on the login screen.
+- Admin credentials should open `manager.html`.
+- Investor credentials should open `investor.html`.
+- Investor users should not be able to write Firestore data.
+- Admin users should be able to manage operational Firestore data.
