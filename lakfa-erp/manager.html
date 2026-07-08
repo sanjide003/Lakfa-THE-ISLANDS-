@@ -1047,6 +1047,12 @@
           <label>Visible Table Columns</label>
           <textarea id="settings-visible-columns" class="form-control" rows="4" placeholder="One column per line: date, customer, amount"></textarea>
         </div>
+
+        <div class="form-group">
+          <label>WhatsApp / Notification Templates</label>
+          <textarea id="settings-notification-templates" class="form-control" rows="5" placeholder="Example: orderConfirmation=Hi {{customer}}, your order {{orderId}} is confirmed."></textarea>
+          <small style="color: var(--text-muted);">Use placeholders like {{customer}}, {{orderId}}, {{product}}, {{amount}}, {{paymentStatus}}, {{trackingId}}, {{invoiceNumber}}, {{invoiceLink}}, {{companyName}}.</small>
+        </div>
         <div class="form-group">
           <label>Module Notes</label>
           <textarea id="settings-module-notes" class="form-control" rows="3" placeholder="Any settings guidance for this tab"></textarea>

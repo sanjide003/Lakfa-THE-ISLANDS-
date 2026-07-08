@@ -130,16 +130,26 @@ Validation checks:
 | Company identity source | Update `settings/companyProfile`, refresh, then print again. | Printable documents use latest Firestore `companyName`, `gst`, `address`, `phone`, `email`, `website`, `logoDataUrl`, and `signatureDataUrl`. | ☐ |
 | Investor restriction | Login as investor and inspect investor screens. | Investor can read data but cannot see admin print/download/edit/delete controls. | ☐ |
 
-## 8. Vercel PWA cache verification
+## 8. WhatsApp / customer notification foundation verification
+
+| Check | Steps | Expected result | Status |
+|---|---|---|---|
+| Order confirmation template | Admin → Orders settings gear → edit `orderConfirmation=...`, save, then use Copy Msg / WhatsApp on an order row. | Message uses Firestore order data and replaces `{{customer}}`, `{{orderId}}`, `{{product}}`, `{{amount}}`, and `{{companyName}}`. | ☐ |
+| Sales invoice/payment template | Admin → Sales settings gear → edit `invoiceShare=...` or `paymentReminder=...`, save, then use Copy Msg / WhatsApp on a sales row. | Message uses Firestore sales data, invoice number prefix, payment status, amount, invoice link, and company name. | ☐ |
+| Delivery tracking template | Admin → Delivery settings gear → edit `deliveryTracking=...`, save, then use Copy Msg / WhatsApp on a delivery row. | Message uses Firestore delivery data, courier partner, tracking ID, delivery status, and customer phone fallback. | ☐ |
+| Investor restriction | Login as investor and inspect investor screens. | Investor can read data but cannot see admin copy/open WhatsApp actions. | ☐ |
+| No browser data persistence | Copy/open WhatsApp actions, refresh browser, inspect Application storage. | Notification templates are read from Firestore `settings/appSettings`; no browser storage is used. | ☐ |
+
+## 9. Vercel PWA cache verification
 
 - [ ] `/` opens the login page.
 - [ ] `/lakfa-erp/service-worker.js` returns `Cache-Control: public, max-age=0, must-revalidate`.
-- [ ] Browser DevTools Application → Cache Storage shows `lakfa-erp-cache-v6`.
+- [ ] Browser DevTools Application → Cache Storage shows `lakfa-erp-cache-v7`.
 - [ ] Cached assets include `js/firebase-db.js`, `js/company-profile.js`, `js/manager.js`, `js/investor.js`, and `css/style.css`.
 - [ ] Hard refresh loads latest company profile image behavior.
 - [ ] PWA install prompt works in Chrome or Edge.
 
-## 9. Bug report template
+## 10. Bug report template
 
 | Field | Value |
 | --- | --- |

@@ -31,6 +31,7 @@ let appSettings = { modules: {} };
 const APP_SETTINGS_COLLECTION = "settings";
 const APP_SETTINGS_DOCUMENT = "appSettings";
 const PRINTABLE_DOCUMENT_KEYS = new Set([KEYS.purchases, KEYS.sales, KEYS.delivery]);
+const NOTIFICATION_DOCUMENT_KEYS = new Set([KEYS.orders, KEYS.sales, KEYS.delivery]);
 const READ_ONLY_MESSAGE = "This module is read-only until its Firestore write workflow is enabled.";
 const WRITABLE_FORM_IDS = new Set([
   "product-form", "customer-form", "supplier-form", "investors-form",
@@ -274,7 +275,8 @@ function initModuleSettingsPanel() {
       requiredFields: getLines("settings-required-fields"),
       dropdownOptions: getLines("settings-dropdown-options"),
       visibleColumns: getLines("settings-visible-columns"),
-      notes: getValue("settings-module-notes")
+      notes: getValue("settings-module-notes"),
+      notificationTemplates: getValue("settings-notification-templates")
     };
 
     const saveButton = document.getElementById("module-settings-save-btn");
@@ -306,6 +308,7 @@ function openModuleSettings(sectionKey) {
   setTextareaLines("settings-dropdown-options", settings.dropdownOptions);
   setTextareaLines("settings-visible-columns", settings.visibleColumns);
   setValue("settings-module-notes", settings.notes);
+  setValue("settings-notification-templates", settings.notificationTemplates || getDefaultNotificationTemplates(sectionKey));
 
   const title = document.getElementById("module-settings-title");
   const subtitle = document.getElementById("module-settings-subtitle");
@@ -331,7 +334,8 @@ function getDefaultModuleSettings(sectionKey) {
     requiredFields: [],
     dropdownOptions: [],
     visibleColumns: [],
-    notes: ""
+    notes: "",
+    notificationTemplates: getDefaultNotificationTemplates(sectionKey)
   };
 }
 
@@ -341,6 +345,16 @@ function getLines(id) {
     .map((line) => line.trim())
     .filter(Boolean);
 }
+
+function getDefaultNotificationTemplates(sectionKey) {
+  const templates = {
+    orders: "orderConfirmation=Hi {{customer}}, your order {{orderId}} for {{product}} is confirmed. Total payable: {{amount}}. - {{companyName}}",
+    sales: "paymentReminder=Hi {{customer}}, payment status for invoice {{invoiceNumber}} is {{paymentStatus}}. Amount: {{amount}}. Please contact {{companyName}} for support.\ninvoiceShare=Hi {{customer}}, your invoice {{invoiceNumber}} for {{product}} is ready. Amount: {{amount}}. {{invoiceLink}} - {{companyName}}",
+    delivery: "deliveryTracking=Hi {{customer}}, your order {{orderId}} is {{status}} via {{courier}}. Tracking ID: {{trackingId}}. - {{companyName}}"
+  };
+  return templates[sectionKey] || "";
+}
+
 
 function setTextareaLines(id, lines = []) {
   const input = document.getElementById(id);
@@ -646,10 +660,15 @@ function renderTable(key, tableBodyId) {
         ? `<button class="btn-secondary btn-sm print-doc-btn" style="padding: 0.25rem 0.5rem; margin-right: 4px;">Print</button>
            <button class="btn-secondary btn-sm download-doc-btn" style="padding: 0.25rem 0.5rem; margin-right: 4px;">Download</button>`
         : "";
+      const notificationButtons = NOTIFICATION_DOCUMENT_KEYS.has(key)
+        ? `<button class="btn-secondary btn-sm copy-notification-btn" style="padding: 0.25rem 0.5rem; margin-right: 4px;">Copy Msg</button>
+           <button class="btn-secondary btn-sm whatsapp-btn" style="padding: 0.25rem 0.5rem; margin-right: 4px;">WhatsApp</button>`
+        : "";
       tr.innerHTML = `
         ${cellsHTML}
         <td class="text-right" style="white-space: nowrap;">
           ${documentButtons}
+          ${notificationButtons}
           <button class="btn-secondary btn-sm edit-btn" style="padding: 0.25rem 0.5rem; margin-right: 4px;">Edit</button>
           <button class="btn-danger btn-sm delete-btn" style="padding: 0.25rem 0.5rem;">Delete</button>
         </td>
@@ -658,6 +677,8 @@ function renderTable(key, tableBodyId) {
       tr.querySelector(".delete-btn").addEventListener("click", () => deleteRecord(key, row.id));
       tr.querySelector(".print-doc-btn")?.addEventListener("click", () => printDocument(key, row.id));
       tr.querySelector(".download-doc-btn")?.addEventListener("click", () => downloadDocumentHtml(key, row.id));
+      tr.querySelector(".copy-notification-btn")?.addEventListener("click", () => copyNotificationMessage(key, row.id));
+      tr.querySelector(".whatsapp-btn")?.addEventListener("click", () => openWhatsAppNotification(key, row.id));
     } else {
       tr.innerHTML = `
         ${cellsHTML}
@@ -676,6 +697,103 @@ async function getCompanyProfileForDocument() {
     console.error("Unable to load company profile for printable document", err);
     showToast(getFirebaseErrorMessage(err, "Unable to load company profile for printable document."), "error");
     return {};
+  }
+}
+
+function getNotificationTypeForKey(key) {
+  if (key === KEYS.orders) return "orderConfirmation";
+  if (key === KEYS.sales) return "invoiceShare";
+  if (key === KEYS.delivery) return "deliveryTracking";
+  return "message";
+}
+
+function getNotificationSectionForKey(key) {
+  if (key === KEYS.orders) return "orders";
+  if (key === KEYS.sales) return "sales";
+  if (key === KEYS.delivery) return "delivery";
+  return activeSectionId;
+}
+
+function getNotificationTemplate(sectionKey, templateType) {
+  const rawTemplates = appSettings.modules?.[sectionKey]?.notificationTemplates || getDefaultNotificationTemplates(sectionKey);
+  const templates = Object.fromEntries(rawTemplates
+    .split("\n")
+    .map((line) => line.trim())
+    .filter(Boolean)
+    .map((line) => {
+      const separatorIndex = line.indexOf("=");
+      return separatorIndex === -1 ? ["message", line] : [line.slice(0, separatorIndex).trim(), line.slice(separatorIndex + 1).trim()];
+    }));
+  return templates[templateType] || templates.message || rawTemplates;
+}
+
+function getNotificationContext(key, record, profile = {}) {
+  const meta = PRINTABLE_DOCUMENT_KEYS.has(key) ? getPrintableDocumentMeta(key) : null;
+  const customer = getDocumentParty(key === KEYS.orders ? KEYS.delivery : key, record);
+  const order = key === KEYS.delivery
+    ? getStoredRecords(KEYS.orders).find((item) => item.id === record.orderId || item.orderId === record.orderId || item.customerName === record.customer)
+    : null;
+  const amount = record.totalPayable || record.finalAmount || record.charge || record.totalAmount || record.amount || 0;
+  return {
+    companyName: profile.companyName || "Lakfa ERP",
+    customer: record.customerName || record.customer || customer.name || "Customer",
+    phone: record.phone || record.customerPhone || customer.phone || order?.phone || "",
+    product: record.product || order?.product || record.itemName || "",
+    amount: formatCurrency(amount),
+    status: record.orderStatus || record.paymentStatus || record.status || "",
+    paymentStatus: record.paymentStatus || "",
+    trackingId: record.trackingId || "",
+    courier: record.partner || "",
+    orderId: record.orderId || record.id || "",
+    invoiceNumber: meta ? formatDocumentNumber(meta, record) : (record.invoice || record.id || ""),
+    invoiceLink: window.location.href.split("#")[0] + (key === KEYS.sales ? "#sales" : key === KEYS.delivery ? "#delivery" : "#orders"),
+    deliveryDate: record.deliveredDate || record.dispatchDate || ""
+  };
+}
+
+function renderNotificationMessage(template, context) {
+  return template.replace(/{{\s*([a-zA-Z0-9_]+)\s*}}/g, (_, token) => context[token] ?? "");
+}
+
+async function buildNotificationMessage(key, id) {
+  const record = getStoredRecords(key).find((item) => item.id === id);
+  if (!record) throw new Error("Unable to find this Firestore record for notification.");
+  const profile = await getCompanyProfileForDocument();
+  const sectionKey = getNotificationSectionForKey(key);
+  const templateType = getNotificationTypeForKey(key);
+  const template = getNotificationTemplate(sectionKey, templateType);
+  return { message: renderNotificationMessage(template, getNotificationContext(key, record, profile)), context: getNotificationContext(key, record, profile) };
+}
+
+async function copyNotificationMessage(key, id) {
+  try {
+    const { message } = await buildNotificationMessage(key, id);
+    if (navigator.clipboard?.writeText) {
+      await navigator.clipboard.writeText(message);
+    } else {
+      const textarea = document.createElement("textarea");
+      textarea.value = message;
+      document.body.appendChild(textarea);
+      textarea.select();
+      document.execCommand("copy");
+      textarea.remove();
+    }
+    showToast("Notification message copied.", "success");
+  } catch (err) {
+    console.error("Unable to copy notification", err);
+    showToast(err.message || "Unable to copy notification message.", "error");
+  }
+}
+
+async function openWhatsAppNotification(key, id) {
+  try {
+    const { message, context } = await buildNotificationMessage(key, id);
+    const phone = String(context.phone || "").replace(/\D/g, "");
+    const baseUrl = phone ? `https://wa.me/${phone}` : "https://wa.me/";
+    window.open(`${baseUrl}?text=${encodeURIComponent(message)}`, "_blank", "noopener,noreferrer");
+  } catch (err) {
+    console.error("Unable to open WhatsApp notification", err);
+    showToast(err.message || "Unable to open WhatsApp message.", "error");
   }
 }
 
