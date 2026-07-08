@@ -2,29 +2,9 @@
 import { auth, db } from "./firebase-config.js";
 import { signInWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
 import { doc, getDoc } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
-import { isDemoMode } from "./role-guard.js";
 import { showToast } from "./utils.js";
 
 const getAppPageUrl = (pageName) => new URL(`../${pageName}`, import.meta.url).href;
-
-// Standard Demo Users for offline/unconfigured testing
-const DEMO_USERS = {
-  "admin@lakfa.com": {
-    uid: "demo_admin_uid",
-    name: "Lakfa Foods Admin",
-    email: "admin@lakfa.com",
-    role: "admin",
-    status: "active"
-  },
-  "investor@lakfa.com": {
-    uid: "demo_investor_uid",
-    name: "Lakfa Investor Group",
-    email: "investor@lakfa.com",
-    role: "investor",
-    status: "active",
-    investorId: "INV001"
-  }
-};
 
 document.addEventListener("DOMContentLoaded", () => {
   const loginForm = document.getElementById("login-form");
@@ -32,12 +12,6 @@ document.addEventListener("DOMContentLoaded", () => {
   const errorText = document.getElementById("error-text");
   const loadingIndicator = document.getElementById("loading-indicator");
   const loginBtn = document.getElementById("login-btn");
-  const demoBanner = document.getElementById("demo-banner");
-
-  // Show demo banner if Firebase is not yet configured
-  if (isDemoMode() && demoBanner) {
-    demoBanner.classList.remove("d-none");
-  }
 
   if (loginForm) {
     loginForm.addEventListener("submit", async (e) => {
@@ -57,42 +31,7 @@ document.addEventListener("DOMContentLoaded", () => {
         return;
       }
 
-      // 1. Check Demo Mode First
-      if (isDemoMode()) {
-        setTimeout(() => { // Simulate network delay
-          const matchedUser = DEMO_USERS[email.toLowerCase()];
-          if (matchedUser) {
-            // Password verification check
-            const correctPassword = matchedUser.role === "admin" ? "admin123" : "investor123";
-            if (password === correctPassword) {
-              if (matchedUser.status !== "active") {
-                showError("Your account is inactive. Please contact admin.");
-                return;
-              }
-              
-              // Store session
-              sessionStorage.setItem("lakfa_demo_user", JSON.stringify(matchedUser));
-              showToast("Demo login successful!", "success");
-              
-              // Redirect based on role
-              if (matchedUser.role === "admin") {
-                window.location.href = getAppPageUrl("manager.html");
-              } else if (matchedUser.role === "investor") {
-                window.location.href = getAppPageUrl("investor.html");
-              } else {
-                showError("Invalid user role. Please contact admin.");
-              }
-            } else {
-              showError("Incorrect password. Hint: Use admin123 or investor123");
-            }
-          } else {
-            showError("User not found in demo accounts. Use admin@lakfa.com or investor@lakfa.com");
-          }
-        }, 800);
-        return;
-      }
-
-      // 2. Real Firebase Authentication Flow
+      // Real Firebase Authentication Flow
       try {
         const userCredential = await signInWithEmailAndPassword(auth, email, password);
         const user = userCredential.user;

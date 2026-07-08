@@ -96,15 +96,8 @@ service cloud.firestore {
 
 ---
 
-## ⚡ Quick Evaluation & Testing (Demo Mode)
-Demo Mode is available only when `lakfa-erp/js/firebase-config.js` contains placeholder Firebase values. This branch uses the live `fest-21d67` Firebase config, so production login requires Firebase Authentication users and Firestore role documents. For local experiments, you can temporarily restore placeholder values and log in using these preset credentials:
-
-*   **Administrator Account:**
-    *   **Email:** `admin@lakfa.com`
-    *   **Password:** `admin123`
-*   **Venture Investor Account:**
-    *   **Email:** `investor@lakfa.com`
-    *   **Password:** `investor123`
+## ⚡ Firebase-only Data Mode
+Lakfa ERP no longer ships demo credentials, sample records, or browser-local business storage. Dashboards and ledgers render records from Firebase only. If a Firestore collection is empty, the related module shows an empty state until an admin creates records in Firebase.
 
 ---
 
@@ -127,6 +120,6 @@ Deploying this project to Vercel takes less than a minute and requires no comman
 ---
 
 ## 🔮 Future Roadmap (Phase 2 Development)
-*   **Live Cloud Storage:** Seamlessly replace `localStorage` engines with Google Firestore live synchronizations.
+*   **Firestore Write Workflows:** Enable admin create/update/delete forms after the Firebase read-only data layer is verified.
 *   **Invoicing & GST Forms:** Automatically generate professional PDFs and compile GSTR-1 summaries.
 *   **WhatsApp CRM:** Trigger automated dispatch alerts, delivery trackers, and confirmation messages directly to customer phone numbers.

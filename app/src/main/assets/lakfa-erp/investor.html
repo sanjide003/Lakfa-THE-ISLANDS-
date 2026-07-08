@@ -127,28 +127,58 @@
             </div>
           </div>
 
-          <!-- Company Updates Stream -->
+          <!-- Firebase Read-only Notice -->
           <div class="card">
-            <div class="card-title">Company Announcements</div>
-            <div style="display: flex; flex-direction: column; gap: 1rem;">
-              <div style="border-left: 3px solid var(--primary); padding-left: 0.75rem;">
-                <h4 style="font-size: 0.875rem; font-weight: 700;">Grinding Plant Expansion Phase 1</h4>
-                <p style="font-size: 0.75rem; color: var(--text-muted); margin-bottom: 0.25rem;">Dispatched on 2026-07-06</p>
-                <p style="font-size: 0.8125rem;">Production plant installed new high-capacity spice grinders, boosting daily flour processing output by 40%.</p>
-              </div>
-              <div style="border-left: 3px solid var(--primary); padding-left: 0.75rem;">
-                <h4 style="font-size: 0.875rem; font-weight: 700;">July 2026 Profit Dividends Distributed</h4>
-                <p style="font-size: 0.75rem; color: var(--text-muted); margin-bottom: 0.25rem;">Dispatched on 2026-07-05</p>
-                <p style="font-size: 0.8125rem;">Disbursed July venture earnings to partners. Bank transfers cleared successfully via NEFT.</p>
-              </div>
-              <div style="border-left: 3px solid var(--primary); padding-left: 0.75rem;">
-                <h4 style="font-size: 0.875rem; font-weight: 700;">Organic Spice Sourcing Agreement</h4>
-                <p style="font-size: 0.75rem; color: var(--text-muted); margin-bottom: 0.25rem;">Dispatched on 2026-07-02</p>
-                <p style="font-size: 0.8125rem;">Inked raw spice sourcing contract with Palakkad Agro. Lock-in rates reduce cost of goods sold by 5%.</p>
-              </div>
+            <div class="card-title">Read-only Firebase Access</div>
+            <p style="font-size: 0.875rem; color: var(--text-muted); line-height: 1.6;">
+              This investor workspace displays only records available in Firebase. Editing and deletion are disabled for investor accounts.
+            </p>
+          </div>
+
+        </div>
+
+        <div class="card" style="margin-top: 2rem;">
+          <div class="card-title">Stock Overview</div>
+          <div class="table-responsive" style="margin-bottom: 0;">
+            <table>
+              <thead>
+                <tr><th>Item</th><th>Category</th><th>Type</th><th>Current Stock</th><th>Unit</th><th>Minimum</th><th>Last Updated</th></tr>
+              </thead>
+              <tbody id="investor-stock-table-body">
+                <tr><td colspan="7" class="text-center" style="padding: 1.5rem;">Loading Firebase stock records...</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <div class="module-layout" style="grid-template-columns: 1fr 1fr; margin-top: 2rem;">
+          <div class="card">
+            <div class="card-title">Expense Ledger</div>
+            <div class="table-responsive" style="margin-bottom: 0;">
+              <table>
+                <thead>
+                  <tr><th>Date</th><th>Category</th><th>Description</th><th>Amount</th><th>Mode</th><th>Paid To</th></tr>
+                </thead>
+                <tbody id="investor-expense-table-body">
+                  <tr><td colspan="6" class="text-center" style="padding: 1.5rem;">Loading Firebase expense records...</td></tr>
+                </tbody>
+              </table>
             </div>
           </div>
 
+          <div class="card">
+            <div class="card-title">Income Ledger</div>
+            <div class="table-responsive" style="margin-bottom: 0;">
+              <table>
+                <thead>
+                  <tr><th>Date</th><th>Source</th><th>Description</th><th>Amount</th><th>Mode</th><th>Received From</th></tr>
+                </thead>
+                <tbody id="investor-income-table-body">
+                  <tr><td colspan="6" class="text-center" style="padding: 1.5rem;">Loading Firebase income records...</td></tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
         </div>
       </div>
     </main>
@@ -164,6 +194,7 @@
   <script type="module" src="js/firebase-config.js"></script>
   <script type="module" src="js/role-guard.js"></script>
   <script type="module" src="js/utils.js"></script>
+  <script type="module" src="js/firebase-db.js"></script>
   <script type="module" src="js/investor.js"></script>
 </body>
 </html>

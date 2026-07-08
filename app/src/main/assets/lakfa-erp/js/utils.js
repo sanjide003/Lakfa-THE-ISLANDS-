@@ -95,28 +95,3 @@ export function showToast(message, type = 'info') {
     }, 300);
   }, 3500);
 }
-
-/**
- * Safe local storage functions to handle structures gracefully
- */
-export const dbLocal = {
-  save(key, items) {
-    localStorage.setItem(key, JSON.stringify(items));
-  },
-  
-  getAll(key) {
-    const data = localStorage.getItem(key);
-    if (!data) return [];
-    try {
-      return JSON.parse(data);
-    } catch (e) {
-      console.error(`Error reading key ${key} from localStorage`, e);
-      return [];
-    }
-  },
-
-  getOne(key, id) {
-    const items = this.getAll(key);
-    return items.find(item => item.id === id) || null;
-  }
-};

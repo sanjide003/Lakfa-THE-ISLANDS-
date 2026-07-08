@@ -1,102 +1,101 @@
 /* Lakfa ERP Investor Controller */
-import { logoutUser, isDemoMode } from "./role-guard.js";
-import { formatCurrency, formatDate, dbLocal } from "./utils.js";
+import { logoutUser } from "./role-guard.js";
+import { formatCurrency, formatDate } from "./utils.js";
 import { auth } from "./firebase-config.js";
 import { onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
+import { COLLECTIONS, getCollectionRecords } from "./firebase-db.js";
 
 document.addEventListener("DOMContentLoaded", () => {
-  // Handle logouts
   const logoutBtn = document.getElementById("logout-btn");
   if (logoutBtn) {
     logoutBtn.addEventListener("click", logoutUser);
   }
 
-  // Load and load matching investor context
-  if (isDemoMode()) {
-    const demoUser = sessionStorage.getItem("lakfa_demo_user");
-    if (demoUser) {
-      const userObj = JSON.parse(demoUser);
-      loadInvestorDashboard(userObj.email);
+  onAuthStateChanged(auth, async (user) => {
+    if (user) {
+      await loadInvestorDashboard(user.email);
     }
-  } else {
-    onAuthStateChanged(auth, (user) => {
-      if (user) {
-        loadInvestorDashboard(user.email);
-      }
-    });
-  }
+  });
 });
 
-/**
- * Loads specific investor profiles matching user email and renders summary data
- * @param {string} email 
- */
-function loadInvestorDashboard(email) {
-  // 1. Fetch all investors and search for a matching record
-  const investorsList = dbLocal.getAll("lakfa_investors");
-  const sharingHistory = dbLocal.getAll("lakfa_sharing");
+async function loadInvestorDashboard(email) {
+  try {
+    const [investorsList, sharingHistory, inventory, expenses, income] = await Promise.all([
+      getCollectionRecords(COLLECTIONS.investors),
+      getCollectionRecords(COLLECTIONS.sharing),
+      getCollectionRecords(COLLECTIONS.inventory),
+      getCollectionRecords(COLLECTIONS.expenses),
+      getCollectionRecords(COLLECTIONS.income)
+    ]);
 
-  let investorProfile = investorsList.find(inv => inv.email?.toLowerCase() === email?.toLowerCase());
+    const investorProfile = investorsList.find((inv) => inv.email?.toLowerCase() === email?.toLowerCase());
 
-  // Safe fallback if the investor record does not exist in localStorage yet
-  if (!investorProfile) {
-    console.warn(`No investor profile found for email: ${email}. Loading placeholder demo.`);
-    investorProfile = {
-      name: "Lakfa Investor Group",
-      phone: "+91 9447012345",
-      email: email,
-      amount: 300000,
-      share: 10.0,
-      date: "2026-07-01",
-      status: "Active",
-      notes: "Auto-generated preview profile"
-    };
+    if (!investorProfile) {
+      renderMissingInvestor(email);
+      renderPayoutTable([]);
+      renderInventoryTable(inventory);
+      renderExpenseTable(expenses);
+      renderIncomeTable(income);
+      return;
+    }
+
+    document.getElementById("investor-display-name").textContent = investorProfile.name || email;
+    document.getElementById("card-company-status").textContent = investorProfile.status || "Active";
+
+    const statusBadge = document.getElementById("card-company-status");
+    if (statusBadge) {
+      statusBadge.className = `badge ${investorProfile.status === 'Inactive' ? 'badge-danger' : 'badge-success'}`;
+    }
+
+    const myShares = sharingHistory.filter((share) => {
+      const sameInvestorId = investorProfile.id && share.investorId === investorProfile.id;
+      const sameName = share.investor?.toLowerCase() === investorProfile.name?.toLowerCase();
+      const sameEmail = share.email?.toLowerCase() === email?.toLowerCase();
+      return sameInvestorId || sameName || sameEmail;
+    });
+
+    const totalInvestment = parseFloat(investorProfile.amount || 0);
+    const sharePercentage = parseFloat(investorProfile.share || 0);
+
+    const totalProfitReceived = myShares
+      .filter((share) => share.status === "Paid")
+      .reduce((sum, share) => sum + parseFloat(share.amount || 0), 0);
+
+    const pendingProfit = myShares
+      .filter((share) => share.status === "Pending")
+      .reduce((sum, share) => sum + parseFloat(share.amount || 0), 0);
+
+    const lastPayment = myShares
+      .filter((share) => share.status === "Paid" && share.date)
+      .sort((a, b) => new Date(b.date) - new Date(a.date))[0];
+
+    document.getElementById("inv-total").textContent = formatCurrency(totalInvestment);
+    document.getElementById("inv-share").textContent = `${sharePercentage.toFixed(1)}%`;
+    document.getElementById("inv-received").textContent = formatCurrency(totalProfitReceived);
+    document.getElementById("inv-pending").textContent = formatCurrency(pendingProfit);
+    document.getElementById("inv-last-payout").textContent = lastPayment ? formatDate(lastPayment.date) : "No payout yet";
+
+    renderPayoutTable(myShares);
+    renderInventoryTable(inventory);
+    renderExpenseTable(expenses);
+    renderIncomeTable(income);
+  } catch (err) {
+    console.error("Unable to load investor dashboard from Firebase", err);
+    renderMissingInvestor(email, "Unable to load Firebase data. Please contact admin.");
   }
-
-  // Set Profile Metadata on UI
-  document.getElementById("investor-display-name").textContent = investorProfile.name;
-  document.getElementById("card-company-status").textContent = investorProfile.status;
-  
-  const statusBadge = document.getElementById("card-company-status");
-  if (statusBadge) {
-    statusBadge.className = `badge ${investorProfile.status === 'Active' ? 'badge-success' : 'badge-danger'}`;
-  }
-
-  // 2. Fetch profit shares matching this investor's name
-  const myShares = sharingHistory.filter(share => share.investor?.toLowerCase() === investorProfile.name?.toLowerCase());
-
-  // Calculations for cards
-  const totalInvestment = parseFloat(investorProfile.amount || 0);
-  const sharePercentage = parseFloat(investorProfile.share || 0);
-
-  const totalProfitReceived = myShares
-    .filter(s => s.status === "Paid")
-    .reduce((sum, s) => sum + parseFloat(s.amount || 0), 0);
-
-  const pendingProfit = myShares
-    .filter(s => s.status === "Pending")
-    .reduce((sum, s) => sum + parseFloat(s.amount || 0), 0);
-
-  const lastPayment = myShares
-    .filter(s => s.status === "Paid" && s.date)
-    .sort((a, b) => new Date(b.date) - new Date(a.date))[0];
-
-  const lastPaymentDateStr = lastPayment ? formatDate(lastPayment.date) : "No payout yet";
-
-  // Populate Dashboard Metric Cards
-  document.getElementById("inv-total").textContent = formatCurrency(totalInvestment);
-  document.getElementById("inv-share").textContent = `${sharePercentage.toFixed(1)}%`;
-  document.getElementById("inv-received").textContent = formatCurrency(totalProfitReceived);
-  document.getElementById("inv-pending").textContent = formatCurrency(pendingProfit);
-  document.getElementById("inv-last-payout").textContent = lastPaymentDateStr;
-
-  // Render Payout / Profit Share history
-  renderPayoutTable(myShares);
 }
 
-/**
- * Render historical share payout lines inside investor table
- */
+function renderMissingInvestor(email, message = "No investor profile is assigned to this login. Please contact admin.") {
+  document.getElementById("investor-display-name").textContent = email || "Investor";
+  document.getElementById("card-company-status").textContent = "Not Assigned";
+  document.getElementById("card-company-status").className = "badge badge-warning";
+  document.getElementById("inv-total").textContent = formatCurrency(0);
+  document.getElementById("inv-share").textContent = "0.0%";
+  document.getElementById("inv-received").textContent = formatCurrency(0);
+  document.getElementById("inv-pending").textContent = formatCurrency(0);
+  document.getElementById("inv-last-payout").textContent = message;
+}
+
 function renderPayoutTable(shares) {
   const tbody = document.getElementById("payout-table-body");
   if (!tbody) return;
@@ -104,20 +103,72 @@ function renderPayoutTable(shares) {
   tbody.innerHTML = "";
 
   if (shares.length === 0) {
-    tbody.innerHTML = `<tr><td colspan="6" class="text-center" style="color: var(--text-muted); padding: 1.5rem;">No profit distribution history found.</td></tr>`;
+    tbody.innerHTML = `<tr><td colspan="6" class="text-center" style="color: var(--text-muted); padding: 1.5rem;">No Firebase profit distribution history found for this investor.</td></tr>`;
     return;
   }
 
-  shares.forEach(row => {
+  shares.forEach((row) => {
     const tr = document.createElement("tr");
     tr.innerHTML = `
-      <td><strong>${row.period}</strong></td>
+      <td><strong>${row.period || '-'}</strong></td>
       <td>${formatCurrency(row.totalProfit)}</td>
-      <td>${row.share}%</td>
+      <td>${row.share || 0}%</td>
       <td style="font-weight: 600; color: var(--primary);">${formatCurrency(row.amount)}</td>
-      <td><span class="badge ${row.status === 'Paid' ? 'badge-success' : 'badge-warning'}">${row.status}</span></td>
+      <td><span class="badge ${row.status === 'Paid' ? 'badge-success' : 'badge-warning'}">${row.status || 'Pending'}</span></td>
       <td>${row.date ? formatDate(row.date) : '-'}</td>
     `;
+    tbody.appendChild(tr);
+  });
+}
+
+function renderInventoryTable(records) {
+  renderRows("investor-stock-table-body", records, 7, (row) => `
+    <td><strong>${row.name || '-'}</strong></td>
+    <td>${row.category || '-'}</td>
+    <td>${row.stockType || '-'}</td>
+    <td>${row.currentStock ?? 0}</td>
+    <td>${row.unit || '-'}</td>
+    <td>${row.minStock ?? row.minimumStock ?? '-'}</td>
+    <td>${row.lastUpdated ? formatDate(row.lastUpdated) : '-'}</td>
+  `);
+}
+
+function renderExpenseTable(records) {
+  renderRows("investor-expense-table-body", records, 6, (row) => `
+    <td>${row.date ? formatDate(row.date) : '-'}</td>
+    <td>${row.category || '-'}</td>
+    <td>${row.desc || '-'}</td>
+    <td>${formatCurrency(row.amount)}</td>
+    <td>${row.mode || '-'}</td>
+    <td>${row.paidTo || '-'}</td>
+  `);
+}
+
+function renderIncomeTable(records) {
+  renderRows("investor-income-table-body", records, 6, (row) => `
+    <td>${row.date ? formatDate(row.date) : '-'}</td>
+    <td>${row.source || '-'}</td>
+    <td>${row.desc || '-'}</td>
+    <td>${formatCurrency(row.amount)}</td>
+    <td>${row.mode || '-'}</td>
+    <td>${row.receivedFrom || '-'}</td>
+  `);
+}
+
+function renderRows(tableBodyId, records, colspan, rowTemplate) {
+  const tbody = document.getElementById(tableBodyId);
+  if (!tbody) return;
+
+  tbody.innerHTML = "";
+
+  if (!records.length) {
+    tbody.innerHTML = `<tr><td colspan="${colspan}" class="text-center" style="color: var(--text-muted); padding: 1.5rem;">No Firebase records found.</td></tr>`;
+    return;
+  }
+
+  records.forEach((row) => {
+    const tr = document.createElement("tr");
+    tr.innerHTML = rowTemplate(row);
     tbody.appendChild(tr);
   });
 }
