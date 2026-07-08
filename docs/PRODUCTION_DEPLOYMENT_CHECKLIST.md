@@ -51,3 +51,7 @@ Use this checklist before publishing the Firebase-backed PWA to Vercel.
 - Confirm `/` opens the root login page.
 - Confirm `/lakfa-erp/manager.html` and `/lakfa-erp/investor.html` redirect unauthenticated users to login.
 - Confirm service worker loads from `/lakfa-erp/service-worker.js`.
+
+## 7. Step 7 Audit Notes
+
+- Review `docs/PRODUCTION_QA_AUDIT.md` for repository-level audit findings and remaining product stages.
