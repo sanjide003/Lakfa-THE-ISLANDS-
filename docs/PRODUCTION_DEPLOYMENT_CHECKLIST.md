@@ -14,11 +14,10 @@ Use this checklist before publishing the Firebase-backed PWA to Vercel.
   - `investorId` for investor accounts when the investor page must link to a specific investor record.
 - Keep disabled or former staff as `status: inactive` instead of deleting the audit trail.
 
-## 2. Rules and Storage
+## 2. Rules and Firestore image storage
 
 - Publish `docs/firestore.rules` in Firestore Rules.
-- Publish `docs/storage.rules` in Storage Rules.
-- Confirm admin can write company profile, master data, operational records, and uploads.
+- Confirm admin can write company profile, master data, operational records, and Firestore image text fields.
 - Confirm investor can sign in and read their page without edit/delete controls.
 
 ## 3. Seed / Import Template

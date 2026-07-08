@@ -15,12 +15,12 @@ Audit date: 2026-07-08
 
 ## Manual Firebase QA still required
 
-- Publish `docs/firestore.rules` and `docs/storage.rules` to the Firebase project.
+- Publish `docs/firestore.rules` to the Firebase project.
 - Create Firebase Auth users and matching `users/{uid}` role documents.
 - Create at least one inventory record before testing purchase/sales/production stock reconciliation.
 - Test admin create/update/delete in every module against live Firestore.
 - Test investor login and confirm read-only UI plus denied direct writes.
-- Test Vercel deployment URL, service worker registration, and browser install prompt.
+- Test Vercel deployment URL, service worker registration, browser install prompt, and Firestore image reload.
 
 ## Remaining product stages
 

@@ -187,12 +187,14 @@
                 <div class="form-group">
                   <label>Company Logo</label>
                   <input id="company-logo-file" name="logoFile" type="file" class="form-control" accept="image/*">
-                  <input name="logoUrl" type="url" class="form-control" placeholder="Logo URL from Firebase Storage" style="margin-top: 0.5rem;">
+                  <textarea name="logoDataUrl" class="form-control" rows="2" readonly placeholder="Compressed logo text will be saved in Firestore" style="margin-top: 0.5rem;"></textarea>
+                  <small id="company-logo-status" style="color: var(--text-muted); display: block; margin-top: 0.35rem;">No Firestore image saved yet.</small>
                 </div>
                 <div class="form-group">
                   <label>Signature Logo</label>
                   <input id="company-signature-logo-file" name="signatureLogoFile" type="file" class="form-control" accept="image/*">
-                  <input name="signatureLogoUrl" type="url" class="form-control" placeholder="Signature URL from Firebase Storage" style="margin-top: 0.5rem;">
+                  <textarea name="signatureDataUrl" class="form-control" rows="2" readonly placeholder="Compressed signature text will be saved in Firestore" style="margin-top: 0.5rem;"></textarea>
+                  <small id="company-signature-logo-status" style="color: var(--text-muted); display: block; margin-top: 0.35rem;">No Firestore image saved yet.</small>
                   <img id="company-signature-logo-preview" hidden alt="Signature preview" style="max-height: 72px; max-width: 180px; object-fit: contain; margin-top: 0.5rem; border: 1px solid var(--border); border-radius: 8px; padding: 0.35rem; background: #fff;">
                 </div>
               </div>

@@ -29,7 +29,7 @@ lakfa-erp/
       ├── firebase-config.js# SDK Config & exports
       ├── auth.js           # Auth handlers & Demo flow limits
       ├── role-guard.js     # Protected page redirects
-      ├── manager.js        # Form validation, Storage CRUD, auto-calc
+      ├── manager.js        # Form validation, Firestore CRUD, auto-calc
       ├── investor.js       # View-only investor calculations
       └── utils.js          # Shared date, currency, phone formatters
 ```
@@ -97,7 +97,7 @@ service cloud.firestore {
 ---
 
 ## ⚡ Firebase-only Data Mode
-Lakfa ERP no longer ships trial credentials, placeholder records, or browser-local business storage. Dashboards, ledgers, company profile, logo, and signature branding render records/files from Firebase only. If a Firestore collection is empty, the related module shows an empty state until an admin creates records in Firebase.
+Lakfa ERP no longer ships trial credentials, placeholder records, or browser-local business storage. Dashboards, ledgers, company profile, logo, and signature branding render records/text images from Firebase only. If a Firestore collection is empty, the related module shows an empty state until an admin creates records in Firebase.
 
 ---
 

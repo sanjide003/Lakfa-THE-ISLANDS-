@@ -1,12 +1,13 @@
 /* Lakfa ERP Company Profile Controller */
-import { storage } from "./firebase-config.js";
 import { getDocument, saveDocument } from "./firebase-db.js";
 import { showToast } from "./utils.js";
-import { getDownloadURL, ref, uploadBytes } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-storage.js";
 
 const COMPANY_COLLECTION = "settings";
 const COMPANY_DOCUMENT = "companyProfile";
-const COMPANY_STORAGE_DIR = "company/profile";
+const MAX_INPUT_IMAGE_BYTES = 2 * 1024 * 1024;
+const MAX_DATA_URL_BYTES = 700 * 1024;
+const MAX_IMAGE_DIMENSION = 640;
+const IMAGE_QUALITY = 0.82;
 
 const COMPANY_FIELDS = [
   "companyName",
@@ -20,8 +21,8 @@ const COMPANY_FIELDS = [
   "businessCategory",
   "state",
   "pincode",
-  "logoUrl",
-  "signatureLogoUrl"
+  "logoDataUrl",
+  "signatureDataUrl"
 ];
 
 export async function loadCompanyProfile() {
@@ -34,7 +35,7 @@ export async function saveCompanyProfile(profile) {
 
 export function applyCompanyProfile(profile = {}) {
   const displayName = profile.companyName || "Lakfa ERP";
-  const logoUrl = profile.logoUrl || "";
+  const logoSource = profile.logoDataUrl || profile.logoUrl || "";
 
   document.querySelectorAll("[data-company-name]").forEach((el) => {
     el.textContent = displayName;
@@ -49,8 +50,8 @@ export function applyCompanyProfile(profile = {}) {
   });
 
   document.querySelectorAll("[data-company-logo]").forEach((img) => {
-    if (logoUrl) {
-      img.src = logoUrl;
+    if (logoSource) {
+      img.src = logoSource;
       img.classList.remove("d-none");
       img.hidden = false;
     } else {
@@ -87,25 +88,34 @@ export async function initCompanyProfileForm() {
     if (submitButton) submitButton.disabled = true;
 
     try {
-      const payload = getCompanyProfileFormData(form);
+      const existingProfile = await loadCompanyProfile();
+      const payload = {
+        ...existingProfile,
+        ...getCompanyProfileFormData(form)
+      };
       const logoFile = form.querySelector("#company-logo-file")?.files?.[0];
       const signatureFile = form.querySelector("#company-signature-logo-file")?.files?.[0];
 
       if (logoFile) {
-        payload.logoUrl = await uploadCompanyFile(logoFile, "logo");
+        payload.logoDataUrl = await imageFileToCompressedDataUrl(logoFile, "Company logo");
+        payload.logoUrl = "";
       }
 
       if (signatureFile) {
-        payload.signatureLogoUrl = await uploadCompanyFile(signatureFile, "signature");
+        payload.signatureDataUrl = await imageFileToCompressedDataUrl(signatureFile, "Signature logo");
+        payload.signatureLogoUrl = "";
       }
 
       await saveCompanyProfile(payload);
-      applyCompanyProfile(payload);
-      populateCompanyProfileForm(form, payload);
-      showToast("Company profile saved to Firebase.", "success");
+      const savedProfile = await loadCompanyProfile();
+      applyCompanyProfile(savedProfile);
+      populateCompanyProfileForm(form, savedProfile);
+      form.querySelector("#company-logo-file").value = "";
+      form.querySelector("#company-signature-logo-file").value = "";
+      showToast("Company profile saved to Firestore.", "success");
     } catch (err) {
       console.error("Unable to save company profile", err);
-      showToast("Unable to save company profile. Please check Firebase permissions.", "error");
+      showToast(err.message || "Unable to save company profile. Please check Firebase permissions.", "error");
     } finally {
       if (submitButton) submitButton.disabled = false;
     }
@@ -120,8 +130,10 @@ function populateCompanyProfileForm(form, profile) {
     }
   });
 
-  updatePreviewImage("company-logo-preview", profile.logoUrl);
-  updatePreviewImage("company-signature-logo-preview", profile.signatureLogoUrl);
+  updatePreviewImage("company-logo-preview", profile.logoDataUrl || profile.logoUrl);
+  updatePreviewImage("company-signature-logo-preview", profile.signatureDataUrl || profile.signatureLogoUrl);
+  updateImageStatus("company-logo-status", profile.logoDataUrl);
+  updateImageStatus("company-signature-logo-status", profile.signatureDataUrl);
 }
 
 function getCompanyProfileFormData(form) {
@@ -135,12 +147,45 @@ function getCompanyProfileFormData(form) {
   return data;
 }
 
-async function uploadCompanyFile(file, kind) {
-  const safeName = file.name.replace(/[^a-zA-Z0-9._-]/g, "-");
-  const storagePath = `${COMPANY_STORAGE_DIR}/${kind}-${Date.now()}-${safeName}`;
-  const storageRef = ref(storage, storagePath);
-  await uploadBytes(storageRef, file, { contentType: file.type });
-  return getDownloadURL(storageRef);
+async function imageFileToCompressedDataUrl(file, label) {
+  if (!file.type.startsWith("image/")) {
+    throw new Error(`${label} must be an image file.`);
+  }
+
+  if (file.size > MAX_INPUT_IMAGE_BYTES) {
+    throw new Error(`${label} must be smaller than 2 MB before compression.`);
+  }
+
+  const bitmap = await loadImageBitmap(file);
+  const scale = Math.min(1, MAX_IMAGE_DIMENSION / Math.max(bitmap.width, bitmap.height));
+  const width = Math.max(1, Math.round(bitmap.width * scale));
+  const height = Math.max(1, Math.round(bitmap.height * scale));
+  const canvas = document.createElement("canvas");
+  canvas.width = width;
+  canvas.height = height;
+  const context = canvas.getContext("2d");
+  context.drawImage(bitmap, 0, 0, width, height);
+
+  const outputType = file.type === "image/png" ? "image/png" : "image/jpeg";
+  const dataUrl = canvas.toDataURL(outputType, IMAGE_QUALITY);
+  if (dataUrl.length > MAX_DATA_URL_BYTES) {
+    throw new Error(`${label} is still too large after compression. Use a smaller logo image.`);
+  }
+  return dataUrl;
+}
+
+function loadImageBitmap(file) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => {
+      const image = new Image();
+      image.onload = () => resolve(image);
+      image.onerror = () => reject(new Error("Unable to read selected image."));
+      image.src = reader.result;
+    };
+    reader.onerror = () => reject(new Error("Unable to read selected image."));
+    reader.readAsDataURL(file);
+  });
 }
 
 function updatePreviewImage(elementId, url) {
@@ -154,6 +199,14 @@ function updatePreviewImage(elementId, url) {
     img.removeAttribute("src");
     img.hidden = true;
   }
+}
+
+function updateImageStatus(elementId, dataUrl) {
+  const element = document.getElementById(elementId);
+  if (!element) return;
+  element.textContent = dataUrl
+    ? `Saved in Firestore (${Math.round(dataUrl.length / 1024)} KB text image)`
+    : "No Firestore image saved yet.";
 }
 
 document.addEventListener("DOMContentLoaded", () => {

@@ -6,7 +6,7 @@ Use this matrix after deploying to Vercel and publishing Firebase rules. Record 
 
 - Firebase Auth has at least one active admin and one active investor.
 - Firestore has matching `users/{uid}` role documents for both testers.
-- Firestore and Storage rules from `docs/firestore.rules` and `docs/storage.rules` are published.
+- Firestore rules from `docs/firestore.rules` are published.
 - `settings/companyProfile` exists or is created through the admin Company Profile screen.
 - At least one inventory item exists for stock reconciliation tests.
 
@@ -14,7 +14,7 @@ Use this matrix after deploying to Vercel and publishing Firebase rules. Record 
 
 | Module | Create | Read/Table | Update | Delete | Required validation | Expected side effect |
 | --- | --- | --- | --- | --- | --- | --- |
-| Company Profile | Save all company fields and upload logo/signature | Login/sidebar branding updates | Change phone/email/logo | Not applicable | Required business identity fields | Storage URL saved in `settings/companyProfile` |
+| Company Profile | Save all company fields and upload logo/signature | Login/sidebar branding updates | Change phone/email/logo | Not applicable | Required business identity fields | Compressed image text saved in `settings/companyProfile` |
 | Products | Create active product | Product appears in table | Change price/stock alert | Delete test product | Name, SKU, unit | Product removed from table after delete |
 | Customers | Create customer | Customer appears in table | Change phone/place | Delete test customer | Name, phone, place | No ledger side effect |
 | Suppliers | Create supplier | Supplier appears in table | Change GST/item supplied | Delete test supplier | Name, phone, place | No ledger side effect |
