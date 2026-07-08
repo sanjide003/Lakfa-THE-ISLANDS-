@@ -932,40 +932,24 @@
         <!-- ================= REPORTS MODULE ================= -->
         <section id="section-reports" class="app-section">
           <div class="section-header">
-            <h2 class="section-title">Operational Audits & Reports Desk</h2>
+            <h2 class="section-title">Advanced Reports & Export Desk</h2>
+            <span style="font-size: 0.875rem; color: var(--text-muted);">Firestore-generated summaries</span>
           </div>
-          
-          <div class="dashboard-grid">
-            <div class="dashboard-card" style="align-items: center; text-align: center; padding: 1.5rem;">
-              <h3 style="font-size: 1rem; margin-bottom: 0.5rem;">Daily Sales Ledger</h3>
-              <p style="font-size: 0.75rem; color: var(--text-muted); margin-bottom: 1rem;">Export and audit today's order volumes</p>
-              <button class="btn-primary btn-sm" onclick="alert('Export PDF coming in future update.')">View Report</button>
+          <div class="dashboard-grid" id="advanced-report-cards"></div>
+          <div class="card" style="margin-top: 1.5rem;">
+            <div class="card-title">Report Export Actions</div>
+            <div class="form-grid-3" style="display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 0.75rem;">
+              <button class="btn-primary" type="button" data-report-export="profitLoss" data-export-format="csv">Profit/Loss CSV</button>
+              <button class="btn-primary" type="button" data-report-export="investor" data-export-format="csv">Investor CSV</button>
+              <button class="btn-primary" type="button" data-report-export="stock" data-export-format="csv">Stock CSV</button>
+              <button class="btn-secondary" type="button" data-report-export="profitLoss" data-export-format="pdf">Profit/Loss PDF</button>
+              <button class="btn-secondary" type="button" data-report-export="salesPurchase" data-export-format="pdf">Sales/Purchase PDF</button>
+              <button class="btn-secondary" type="button" data-report-export="stock" data-export-format="pdf">Stock PDF</button>
             </div>
-            <div class="dashboard-card" style="align-items: center; text-align: center; padding: 1.5rem;">
-              <h3 style="font-size: 1rem; margin-bottom: 0.5rem;">Monthly Sales Summary</h3>
-              <p style="font-size: 0.75rem; color: var(--text-muted); margin-bottom: 1rem;">Consolidated monthly sales reports</p>
-              <button class="btn-primary btn-sm" onclick="alert('Export PDF coming in future update.')">View Report</button>
-            </div>
-            <div class="dashboard-card" style="align-items: center; text-align: center; padding: 1.5rem;">
-              <h3 style="font-size: 1rem; margin-bottom: 0.5rem;">Product Performance</h3>
-              <p style="font-size: 0.75rem; color: var(--text-muted); margin-bottom: 1rem;">Identify highest-grossing food categories</p>
-              <button class="btn-primary btn-sm" onclick="alert('Export PDF coming in future update.')">View Report</button>
-            </div>
-            <div class="dashboard-card" style="align-items: center; text-align: center; padding: 1.5rem;">
-              <h3 style="font-size: 1rem; margin-bottom: 0.5rem;">Customer Accounts Audit</h3>
-              <p style="font-size: 0.75rem; color: var(--text-muted); margin-bottom: 1rem;">Identify major retail or online buyers</p>
-              <button class="btn-primary btn-sm" onclick="alert('Export PDF coming in future update.')">View Report</button>
-            </div>
-            <div class="dashboard-card" style="align-items: center; text-align: center; padding: 1.5rem;">
-              <h3 style="font-size: 1rem; margin-bottom: 0.5rem;">Expense Statement</h3>
-              <p style="font-size: 0.75rem; color: var(--text-muted); margin-bottom: 1rem;">Complete categorization of operational costs</p>
-              <button class="btn-primary btn-sm" onclick="alert('Export PDF coming in future update.')">View Report</button>
-            </div>
-            <div class="dashboard-card" style="align-items: center; text-align: center; padding: 1.5rem;">
-              <h3 style="font-size: 1rem; margin-bottom: 0.5rem;">Stock Turnover</h3>
-              <p style="font-size: 0.75rem; color: var(--text-muted); margin-bottom: 1rem;">Material flows and processing speeds</p>
-              <button class="btn-primary btn-sm" onclick="alert('Export PDF coming in future update.')">View Report</button>
-            </div>
+          </div>
+          <div class="card" style="margin-top: 1.5rem;">
+            <div class="card-title">Report Details</div>
+            <div id="advanced-report-table" class="table-responsive"></div>
           </div>
         </section>
 
@@ -973,12 +957,19 @@
         <section id="section-gstreports" class="app-section">
           <div class="section-header">
             <h2 class="section-title">GST Filings & Returns Summary</h2>
+            <span style="font-size: 0.875rem; color: var(--text-muted);">Firestore sales/purchase tax summary</span>
           </div>
-          <div class="card text-center" style="padding: 3rem 1.5rem; display: flex; flex-direction: column; align-items: center; justify-content: center;">
-            <span class="icon" aria-hidden="true" style="width: 48px; height: 48px; color: var(--primary); margin-bottom: 1rem;"><svg viewBox="0 0 24 24" style="width: 48px; height: 48px;"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg></span>
-            <h2 style="margin-top: 1rem; color: var(--primary);">GST Computations & Filings</h2>
-            <p style="color: var(--text-muted); margin-bottom: 1.5rem; font-size: 0.875rem;">Automatic generation of GSTR-1 and GSTR-3B matching invoice books is currently scheduled in the upcoming development phase.</p>
-            <span class="badge badge-warning" style="padding: 0.5rem 1rem;">Coming in future version</span>
+          <div class="dashboard-grid" id="gst-report-cards"></div>
+          <div class="card" style="margin-top: 1.5rem;">
+            <div class="card-title">GST Export Actions</div>
+            <div class="form-grid-2">
+              <button class="btn-primary" type="button" data-report-export="gst" data-export-format="csv">GST Summary CSV</button>
+              <button class="btn-secondary" type="button" data-report-export="gst" data-export-format="pdf">GST Summary PDF</button>
+            </div>
+          </div>
+          <div class="card" style="margin-top: 1.5rem;">
+            <div class="card-title">GST Summary Details</div>
+            <div id="gst-report-table" class="table-responsive"></div>
           </div>
         </section>
 

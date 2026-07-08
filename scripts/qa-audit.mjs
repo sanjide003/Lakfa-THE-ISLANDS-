@@ -11,7 +11,7 @@ const firebaseDb = read('lakfa-erp/js/firebase-db.js');
 const rules = read('docs/firestore.rules');
 
 const managerController = read('lakfa-erp/js/manager.js');
-['PRINTABLE_DOCUMENT_KEYS', 'buildPrintableDocumentHtml', 'printDocument', 'downloadDocumentHtml', 'logoDataUrl', 'signatureDataUrl', 'calculateDocumentTotals', 'amountToIndianWords', '@page { size: A4', 'CGST', 'SGST', 'IGST', 'NOTIFICATION_DOCUMENT_KEYS', 'copyNotificationMessage', 'openWhatsAppNotification', 'getDefaultNotificationTemplates', 'settings-notification-templates'].forEach((needle) => {
+['PRINTABLE_DOCUMENT_KEYS', 'buildPrintableDocumentHtml', 'printDocument', 'downloadDocumentHtml', 'logoDataUrl', 'signatureDataUrl', 'calculateDocumentTotals', 'amountToIndianWords', '@page { size: A4', 'CGST', 'SGST', 'IGST', 'NOTIFICATION_DOCUMENT_KEYS', 'copyNotificationMessage', 'openWhatsAppNotification', 'getDefaultNotificationTemplates', 'settings-notification-templates', 'renderAdvancedReports', 'renderGstReports', 'exportReportCsv', 'printReportPdf', 'sumTaxableEstimate'].forEach((needle) => {
   if (!managerController.includes(needle)) {
     fail(`Manager invoice/PDF foundation is missing ${needle}`);
   }

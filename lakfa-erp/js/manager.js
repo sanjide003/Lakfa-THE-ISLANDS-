@@ -84,7 +84,10 @@ document.addEventListener("DOMContentLoaded", async () => {
   // 5. Set up event listeners for sidebar routing (tab switching + history)
   initSidebarRouting();
 
-  // 6. Render and initialize active dashboard metrics
+  // 6. Initialize report export actions
+  initReportExportActions();
+
+  // 7. Render and initialize active dashboard metrics
   updateDashboardMetrics();
 
   // 7. Handle Logout Button
@@ -436,6 +439,12 @@ function renderModule(sectionId) {
     case "investment-sharing":
       renderTable(KEYS.sharing, "sharing-table-body");
       break;
+    case "reports":
+      renderAdvancedReports();
+      break;
+    case "gstreports":
+      renderGstReports();
+      break;
   }
 }
 
@@ -688,6 +697,179 @@ function renderTable(key, tableBodyId) {
 
     tbody.appendChild(tr);
   });
+}
+
+
+function initReportExportActions() {
+  document.querySelectorAll("[data-report-export]").forEach((button) => {
+    button.addEventListener("click", () => {
+      const reportType = button.dataset.reportExport;
+      const format = button.dataset.exportFormat;
+      if (format === "csv") exportReportCsv(reportType);
+      if (format === "pdf") printReportPdf(reportType);
+    });
+  });
+}
+
+function getReportRows(reportType) {
+  const sales = getStoredRecords(KEYS.sales);
+  const purchases = getStoredRecords(KEYS.purchases);
+  const expenses = getStoredRecords(KEYS.expenses);
+  const income = getStoredRecords(KEYS.income);
+  const inventory = getStoredRecords(KEYS.inventory);
+  const investors = getStoredRecords(KEYS.investors);
+  const sharing = getStoredRecords(KEYS.sharing);
+
+  if (reportType === "profitLoss") {
+    return [
+      { metric: "Sales Revenue", amount: sumRecords(sales, "finalAmount") },
+      { metric: "Other Income", amount: sumRecords(income, "amount") },
+      { metric: "Purchases", amount: sumRecords(purchases, "totalAmount") },
+      { metric: "Expenses", amount: sumRecords(expenses, "amount") },
+      { metric: "Estimated Profit", amount: sumRecords(sales, "finalAmount") + sumRecords(income, "amount") - sumRecords(purchases, "totalAmount") - sumRecords(expenses, "amount") }
+    ];
+  }
+
+  if (reportType === "investor") {
+    return investors.map((investor) => ({
+      investor: investor.name || investor.email || investor.id,
+      capital: parseFloat(investor.amount || 0),
+      share: parseFloat(investor.share || 0),
+      paid: sharing.filter((row) => row.investor === investor.name || row.investorId === investor.id).filter((row) => row.status === "Paid").reduce((sum, row) => sum + parseFloat(row.amount || 0), 0),
+      pending: sharing.filter((row) => row.investor === investor.name || row.investorId === investor.id).filter((row) => row.status !== "Paid").reduce((sum, row) => sum + parseFloat(row.amount || 0), 0)
+    }));
+  }
+
+  if (reportType === "stock") {
+    return inventory.map((item) => {
+      const currentStock = parseFloat(item.currentStock ?? item.stockIn ?? 0);
+      const rate = parseFloat(item.costPrice || item.rate || item.avgCost || 0);
+      return { item: item.name || item.itemName || item.id, type: item.stockType || item.category || "-", stock: currentStock, unit: item.unit || "", valuation: currentStock * rate };
+    });
+  }
+
+  if (reportType === "salesPurchase") {
+    return [
+      { metric: "Sales Count", value: sales.length },
+      { metric: "Sales Total", value: sumRecords(sales, "finalAmount") },
+      { metric: "Purchase Count", value: purchases.length },
+      { metric: "Purchase Total", value: sumRecords(purchases, "totalAmount") },
+      { metric: "Net Sales-Purchase", value: sumRecords(sales, "finalAmount") - sumRecords(purchases, "totalAmount") }
+    ];
+  }
+
+  if (reportType === "gst") {
+    const salesTaxable = sumTaxableEstimate(sales, "finalAmount");
+    const purchaseTaxable = sumTaxableEstimate(purchases, "totalAmount");
+    const outputGst = sumRecords(sales, "finalAmount") - salesTaxable;
+    const inputGst = sumRecords(purchases, "totalAmount") - purchaseTaxable;
+    return [
+      { metric: "Sales Taxable Value", amount: salesTaxable },
+      { metric: "Output GST", amount: outputGst },
+      { metric: "Purchase Taxable Value", amount: purchaseTaxable },
+      { metric: "Input GST", amount: inputGst },
+      { metric: "Estimated GST Payable", amount: outputGst - inputGst }
+    ];
+  }
+
+  return [];
+}
+
+function renderAdvancedReports() {
+  const cards = document.getElementById("advanced-report-cards");
+  if (cards) {
+    const profit = getReportRows("profitLoss").find((row) => row.metric === "Estimated Profit")?.amount || 0;
+    const stockValue = getReportRows("stock").reduce((sum, row) => sum + row.valuation, 0);
+    const salesPurchase = getReportRows("salesPurchase");
+    cards.innerHTML = reportCard("Profit / Loss", formatCurrency(profit), "Sales + income - purchases - expenses")
+      + reportCard("Stock Valuation", formatCurrency(stockValue), "Current stock × available cost")
+      + reportCard("Sales Total", formatCurrency(salesPurchase.find((row) => row.metric === "Sales Total")?.value || 0), "Firestore sales summary")
+      + reportCard("Purchase Total", formatCurrency(salesPurchase.find((row) => row.metric === "Purchase Total")?.value || 0), "Firestore purchase summary");
+  }
+  renderReportTable("advanced-report-table", "profitLoss");
+}
+
+function renderGstReports() {
+  const cards = document.getElementById("gst-report-cards");
+  const rows = getReportRows("gst");
+  if (cards) {
+    cards.innerHTML = rows.map((row) => reportCard(row.metric, formatCurrency(row.amount), "Estimated from Firestore invoice totals")).join("");
+  }
+  renderReportTable("gst-report-table", "gst");
+}
+
+function renderReportTable(containerId, reportType) {
+  const container = document.getElementById(containerId);
+  if (!container) return;
+  const rows = getReportRows(reportType);
+  if (!rows.length) {
+    container.innerHTML = `<table><tbody><tr><td class="text-center">No Firestore report records found.</td></tr></tbody></table>`;
+    return;
+  }
+  const headers = Object.keys(rows[0]);
+  container.innerHTML = `<table><thead><tr>${headers.map((header) => `<th>${escapeHtml(header)}</th>`).join("")}</tr></thead><tbody>${rows.map((row) => `<tr>${headers.map((header) => `<td>${formatReportCell(row[header])}</td>`).join("")}</tr>`).join("")}</tbody></table>`;
+}
+
+function reportCard(title, value, footer) {
+  return `<div class="dashboard-card"><div class="card-header">${escapeHtml(title)}</div><div class="card-value">${escapeHtml(value)}</div><div class="card-footer">${escapeHtml(footer)}</div></div>`;
+}
+
+function exportReportCsv(reportType) {
+  const rows = getReportRows(reportType);
+  if (!rows.length) {
+    showToast("No Firestore report data available for export.", "info");
+    return;
+  }
+  const headers = Object.keys(rows[0]);
+  const csv = [headers.join(","), ...rows.map((row) => headers.map((header) => csvEscape(row[header])).join(","))].join("\n");
+  const link = document.createElement("a");
+  link.href = URL.createObjectURL(new Blob([csv], { type: "text/csv" }));
+  link.download = `${reportType}-firestore-report.csv`;
+  document.body.appendChild(link);
+  link.click();
+  URL.revokeObjectURL(link.href);
+  link.remove();
+}
+
+function printReportPdf(reportType) {
+  const rows = getReportRows(reportType);
+  if (!rows.length) {
+    showToast("No Firestore report data available for PDF.", "info");
+    return;
+  }
+  const headers = Object.keys(rows[0]);
+  const html = `<!doctype html><html><head><meta charset="utf-8"><title>${reportType} report</title><style>@page{size:A4;margin:12mm}body{font-family:Arial,sans-serif;color:#0f172a}h1{color:#0f766e}table{width:100%;border-collapse:collapse;font-size:12px}th,td{border:1px solid #cbd5e1;padding:8px;text-align:left}th{background:#f8fafc}</style></head><body><h1>${escapeHtml(reportType)} Firestore Report</h1><table><thead><tr>${headers.map((header) => `<th>${escapeHtml(header)}</th>`).join("")}</tr></thead><tbody>${rows.map((row) => `<tr>${headers.map((header) => `<td>${formatReportCell(row[header])}</td>`).join("")}</tr>`).join("")}</tbody></table></body></html>`;
+  const printWindow = window.open("", "_blank", "width=900,height=700");
+  if (!printWindow) {
+    showToast("Popup blocked. Please allow popups to print this report.", "error");
+    return;
+  }
+  printWindow.document.open();
+  printWindow.document.write(html);
+  printWindow.document.close();
+  printWindow.focus();
+  printWindow.print();
+}
+
+function formatReportCell(value) {
+  if (typeof value === "number") return escapeHtml(Number.isInteger(value) ? value : value.toFixed(2));
+  return escapeHtml(value ?? "-");
+}
+
+function csvEscape(value) {
+  return `"${String(value ?? "").replace(/"/g, '""')}"`;
+}
+
+function sumRecords(records, field) {
+  return records.reduce((sum, row) => sum + parseFloat(row[field] || 0), 0);
+}
+
+function sumTaxableEstimate(records, amountField) {
+  return records.reduce((sum, row) => {
+    const amount = parseFloat(row[amountField] || 0);
+    const gstRate = parseFloat(row.gstRate || row.taxRate || 18);
+    return sum + (gstRate > 0 ? amount / (1 + gstRate / 100) : amount);
+  }, 0);
 }
 
 async function getCompanyProfileForDocument() {

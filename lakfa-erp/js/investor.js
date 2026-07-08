@@ -32,6 +32,7 @@ async function loadInvestorDashboard(email) {
 
     if (!investorProfile) {
       renderMissingInvestor(email);
+      renderInvestorReportSummary(null, [], inventory, expenses, income);
       renderPayoutTable([]);
       renderInventoryTable(inventory);
       renderExpenseTable(expenses);
@@ -75,6 +76,7 @@ async function loadInvestorDashboard(email) {
     document.getElementById("inv-pending").textContent = formatCurrency(pendingProfit);
     document.getElementById("inv-last-payout").textContent = lastPayment ? formatDate(lastPayment.date) : "No payout yet";
 
+    renderInvestorReportSummary(investorProfile, myShares, inventory, expenses, income);
     renderPayoutTable(myShares);
     renderInventoryTable(inventory);
     renderExpenseTable(expenses);
@@ -94,6 +96,31 @@ function renderMissingInvestor(email, message = "No investor profile is assigned
   document.getElementById("inv-received").textContent = formatCurrency(0);
   document.getElementById("inv-pending").textContent = formatCurrency(0);
   document.getElementById("inv-last-payout").textContent = message;
+}
+
+
+function renderInvestorReportSummary(investorProfile, shares, inventory, expenses, income) {
+  const container = document.getElementById("investor-report-summary");
+  if (!container) return;
+
+  const stockValuation = inventory.reduce((sum, item) => sum + parseFloat(item.currentStock || 0) * parseFloat(item.costPrice || item.rate || 0), 0);
+  const totalExpense = expenses.reduce((sum, row) => sum + parseFloat(row.amount || 0), 0);
+  const totalIncome = income.reduce((sum, row) => sum + parseFloat(row.amount || 0), 0);
+  const investorPaid = shares.filter((row) => row.status === "Paid").reduce((sum, row) => sum + parseFloat(row.amount || 0), 0);
+  const investorPending = shares.filter((row) => row.status !== "Paid").reduce((sum, row) => sum + parseFloat(row.amount || 0), 0);
+
+  const rows = [
+    ["Investor", investorProfile?.name || "Not assigned"],
+    ["My Capital", formatCurrency(investorProfile?.amount || 0)],
+    ["My Share", `${parseFloat(investorProfile?.share || 0).toFixed(1)}%`],
+    ["Paid Profit", formatCurrency(investorPaid)],
+    ["Pending Profit", formatCurrency(investorPending)],
+    ["Company Income", formatCurrency(totalIncome)],
+    ["Company Expenses", formatCurrency(totalExpense)],
+    ["Stock Valuation", formatCurrency(stockValuation)]
+  ];
+
+  container.innerHTML = `<table><thead><tr><th>Report Metric</th><th>Read-only Value</th></tr></thead><tbody>${rows.map(([metric, value]) => `<tr><td>${metric}</td><td>${value}</td></tr>`).join("")}</tbody></table>`;
 }
 
 function renderPayoutTable(shares) {
