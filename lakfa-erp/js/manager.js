@@ -871,7 +871,8 @@ function populateOrderProductOptions(select, selectedValue = "") {
     option.dataset.salePrice = product.salePrice || product.mrp || 0;
     option.dataset.mrp = product.mrp || product.salePrice || 0;
     option.dataset.gstRate = product.gstRate || appSettings.modules?.orders?.gstRate || 0;
-    option.dataset.stock = product.currentStock || product.stock || 0;
+    option.dataset.stock = product.availableStock ?? Math.max(getNumberFromValue(product.currentStock || product.stock) - getNumberFromValue(product.reservedStock), 0);
+    option.dataset.reservedStock = product.reservedStock || 0;
     option.dataset.unit = product.unit || "";
     select.appendChild(option);
   });
@@ -906,9 +907,10 @@ function updateOrderStockAvailability(row) {
   const stockEl = row.querySelector(".stock-availability");
   const qty = Math.max(getNumberFromValue(row.querySelector(".order-qty")?.value), 0);
   const stock = getNumberFromValue(selectedOption?.dataset.stock);
+  const reservedStock = getNumberFromValue(selectedOption?.dataset.reservedStock);
   const unit = selectedOption?.dataset.unit || "";
   if (!stockEl) return;
-  stockEl.textContent = selectedOption?.value ? `Stock: ${stock} ${unit}` : "Stock: -";
+  stockEl.textContent = selectedOption?.value ? `Available: ${stock} ${unit}${reservedStock ? ` • Reserved: ${reservedStock}` : ""}` : "Stock: -";
   stockEl.classList.toggle("low-stock", Boolean(selectedOption?.value) && qty > stock);
 }
 
@@ -2061,7 +2063,7 @@ function initWritableFormListeners() {
     },
     populate: populateOrders,
     afterSave: async (data, meta) => {
-      await reconcileLedgerOnly(data, { ...meta, moduleName: "Order", amount: data.paidAmount, direction: "in", reference: data.customer });
+      await reconcileOrderInventoryAndLedger(data, { ...meta, moduleName: "Order", amount: data.paidAmount, direction: "in", reference: data.customer });
       if (data.advanceCredit > 0) {
         showToast(`Extra payment saved as party advance credit: ${formatCurrency(data.advanceCredit)}`, "info");
       }
@@ -2389,6 +2391,15 @@ async function reconcileLedgerOnly(data, meta) {
   if (operations.length) await commitBatchOperations(operations);
 }
 
+async function reconcileOrderInventoryAndLedger(data, meta) {
+  const operations = [];
+  addOrderInventoryReversalOperations(operations, meta.previous);
+  if (data) addOrderInventoryApplyOperations(operations, data, meta);
+  addLinkedLedgerDeleteOperations(operations, meta.id);
+  if (data) addLinkedLedgerCreateOperation(operations, data, meta);
+  if (operations.length) await commitBatchOperations(operations);
+}
+
 async function reconcileProductionStock(data, meta) {
   const operations = [];
   addStockReversalOperations(operations, meta.previous, "Production");
@@ -2427,6 +2438,110 @@ function getStockDelta(record, moduleName) {
   if (moduleName === "Sales") return -getNumberFromValue(record.qty);
   if (moduleName === "Production") return getNumberFromValue(record.quantityProduced);
   return 0;
+}
+
+function getOrderInventoryMode(order) {
+  const status = normalizeOrderStatus(order?.orderStatus);
+  if (["pending", "processing"].includes(status)) return "reserved";
+  if (["shipped", "delivered"].includes(status)) return "deducted";
+  return "none";
+}
+
+function addOrderInventoryReversalOperations(operations, previous) {
+  const mode = getOrderInventoryMode(previous);
+  if (!previous || mode === "none") return;
+  getOrderInventoryItems(previous).forEach((item) => {
+    if (mode === "reserved") {
+      addInventoryReservationOperation(operations, item.name, -item.qty, "Order reservation release", previous.id || previous.customer);
+    }
+    if (mode === "deducted") {
+      addInventoryDeductionOperation(operations, item.name, -item.qty, "Order stock reversal", previous.id || previous.customer);
+    }
+  });
+}
+
+function addOrderInventoryApplyOperations(operations, order, meta) {
+  const mode = getOrderInventoryMode(order);
+  if (mode === "none") return;
+  getOrderInventoryItems(order).forEach((item) => {
+    if (mode === "reserved") {
+      addInventoryReservationOperation(operations, item.name, item.qty, "Order reserved", meta.id || order.customer);
+    }
+    if (mode === "deducted") {
+      addInventoryDeductionOperation(operations, item.name, item.qty, "Order shipped/delivered", meta.id || order.customer);
+    }
+  });
+}
+
+function getOrderInventoryItems(order) {
+  if (Array.isArray(order?.items) && order.items.length) {
+    return order.items
+      .map((item) => ({ name: item.name || item.product, qty: getNumberFromValue(item.qty || item.quantity) }))
+      .filter((item) => item.name && item.qty > 0);
+  }
+  return [{ name: order?.product, qty: getNumberFromValue(order?.qty) }].filter((item) => item.name && item.qty > 0);
+}
+
+function addInventoryReservationOperation(operations, itemName, reservedDelta, sourceType, sourceRef) {
+  if (!itemName || !reservedDelta) return;
+  const inventoryRecord = findInventoryRecordByName(itemName);
+  if (!inventoryRecord?.id) return;
+  const existingOperation = findInventoryUpdateOperation(operations, inventoryRecord.id);
+  const baseReserved = existingOperation
+    ? getNumberFromValue(existingOperation.payload.reservedStock)
+    : getNumberFromValue(inventoryRecord.reservedStock);
+
+  const payload = existingOperation?.payload || {
+    currentStock: getNumberFromValue(inventoryRecord.currentStock),
+    stockIn: getNumberFromValue(inventoryRecord.stockIn),
+    stockOut: getNumberFromValue(inventoryRecord.stockOut)
+  };
+
+  payload.reservedStock = Math.max(baseReserved + reservedDelta, 0);
+  payload.availableStock = Math.max(getNumberFromValue(payload.currentStock) - payload.reservedStock, 0);
+  payload.lastUpdated = new Date().toISOString().slice(0, 10);
+  payload.lastStockSource = sourceType;
+  payload.lastStockRef = sourceRef || "";
+
+  if (existingOperation) return;
+  operations.push({ type: "update", collectionName: COLLECTIONS.inventory, id: inventoryRecord.id, payload });
+}
+
+function addInventoryDeductionOperation(operations, itemName, quantity, sourceType, sourceRef) {
+  if (!itemName || !quantity) return;
+  const inventoryRecord = findInventoryRecordByName(itemName);
+  if (!inventoryRecord?.id) return;
+  const existingOperation = findInventoryUpdateOperation(operations, inventoryRecord.id);
+  const payload = existingOperation?.payload || {
+    currentStock: getNumberFromValue(inventoryRecord.currentStock),
+    reservedStock: getNumberFromValue(inventoryRecord.reservedStock),
+    stockIn: getNumberFromValue(inventoryRecord.stockIn),
+    stockOut: getNumberFromValue(inventoryRecord.stockOut)
+  };
+
+  payload.currentStock = Math.max(getNumberFromValue(payload.currentStock) - quantity, 0);
+  payload.stockOut = Math.max(getNumberFromValue(payload.stockOut) + quantity, 0);
+  payload.availableStock = Math.max(payload.currentStock - getNumberFromValue(payload.reservedStock), 0);
+  payload.lastUpdated = new Date().toISOString().slice(0, 10);
+  payload.lastStockSource = sourceType;
+  payload.lastStockRef = sourceRef || "";
+
+  if (existingOperation) return;
+  operations.push({ type: "update", collectionName: COLLECTIONS.inventory, id: inventoryRecord.id, payload });
+}
+
+function findInventoryRecordByName(itemName) {
+  return getStoredRecords(KEYS.inventory).find((item) =>
+    (item.name || "").toLowerCase() === String(itemName || "").toLowerCase()
+  );
+}
+
+function findInventoryUpdateOperation(operations, inventoryId) {
+  return operations.find((operation) =>
+    operation.type === "update"
+    && operation.collectionName === COLLECTIONS.inventory
+    && operation.id === inventoryId
+  );
 }
 
 function addStockApplyOperations(operations, itemName, quantityDelta, sourceType, sourceRef) {
@@ -2660,7 +2775,7 @@ function getFormConfigForKey(key) {
     [KEYS.orders]: {
       submitButtonId: "orders-submit-btn",
       populate: populateOrders,
-      beforeDelete: (record) => reconcileLedgerOnly(null, { id: record.id })
+      beforeDelete: (record) => reconcileOrderInventoryAndLedger(null, { id: record.id, previous: record })
     },
     [KEYS.delivery]: { submitButtonId: "delivery-submit-btn", populate: populateDelivery },
     [KEYS.expenses]: {
