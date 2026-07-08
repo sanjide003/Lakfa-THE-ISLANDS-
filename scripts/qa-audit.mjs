@@ -9,6 +9,14 @@ const fail = (message) => {
 
 const firebaseDb = read('lakfa-erp/js/firebase-db.js');
 const rules = read('docs/firestore.rules');
+
+const companyProfile = read('lakfa-erp/js/company-profile.js');
+if (!companyProfile.includes('logoDataUrl') || !companyProfile.includes('signatureDataUrl')) {
+  fail('Company profile must persist logoDataUrl and signatureDataUrl in Firestore');
+}
+if (companyProfile.includes('firebase-storage') || companyProfile.includes('uploadBytes')) {
+  fail('Company profile must not upload images to Firebase Storage');
+}
 const collectionMatches = [...firebaseDb.matchAll(/\b(\w+):\s*"([^"]+)"/g)];
 const collections = collectionMatches.map(([, key, name]) => ({ key, name }));
 

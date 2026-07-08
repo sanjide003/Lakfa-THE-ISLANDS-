@@ -81,3 +81,8 @@ Use this matrix after deploying to Vercel and publishing Firebase rules. Record 
 - Firestore screenshots for `users/{uid}`, one operational collection, one ledger collection, and `settings/companyProfile`.
 - Vercel deployment URL and deployment timestamp.
 - Browser console screenshot showing no blocking JavaScript errors.
+
+
+## Stage 3 execution runbook
+
+Use `docs/LIVE_FIREBASE_STAGING_RUNBOOK.md` to record the live Firebase/Vercel execution results and bug reports.
