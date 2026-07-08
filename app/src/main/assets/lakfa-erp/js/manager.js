@@ -1,7 +1,7 @@
 /* Lakfa ERP Manager Controller */
 import { logoutUser } from "./role-guard.js";
 import { formatCurrency, formatDate, showToast } from "./utils.js";
-import { COLLECTIONS, getAllCollections } from "./firebase-db.js";
+import { COLLECTIONS, createCollectionRecord, deleteCollectionRecord, getAllCollections, updateCollectionRecord } from "./firebase-db.js";
 import { initCompanyProfileForm } from "./company-profile.js";
 
 // Keys mapped to Firestore collections
@@ -27,7 +27,9 @@ const KEYS = {
 let currentEditId = null;
 let firestoreState = {};
 let activeSectionId = "dashboard";
-const READ_ONLY_MESSAGE = "Step 1: Firebase read-only mode is active. Forms will be enabled after Firestore write flows are implemented.";
+const READ_ONLY_MESSAGE = "This module is read-only until its Firestore write workflow is enabled.";
+const WRITABLE_FORM_IDS = new Set(["product-form", "customer-form", "supplier-form", "investors-form"]);
+const WRITABLE_KEYS = new Set([KEYS.products, KEYS.customers, KEYS.suppliers, KEYS.investors]);
 
 const COLLECTION_BY_KEY = {
   [KEYS.products]: COLLECTIONS.products,
@@ -59,19 +61,22 @@ document.addEventListener("DOMContentLoaded", async () => {
   // 2. Load Firestore data for all dashboard and table renderers
   await loadFirestoreData();
 
-  // 3. Set up event listeners for sidebar routing (tab switching)
+  // 3. Enable Firestore writes for approved master-data modules
+  initWritableFormListeners();
+
+  // 4. Set up event listeners for sidebar routing (tab switching)
   initSidebarRouting();
 
-  // 4. Render and initialize active dashboard metrics
+  // 5. Render and initialize active dashboard metrics
   updateDashboardMetrics();
 
-  // 5. Handle Logout Button
+  // 6. Handle Logout Button
   const logoutBtn = document.getElementById("logout-btn");
   if (logoutBtn) {
     logoutBtn.addEventListener("click", logoutUser);
   }
 
-  // 6. Handle Sidebar Responsive Toggle
+  // 7. Handle Sidebar Responsive Toggle
   initSidebarMobileToggle();
 });
 
@@ -87,7 +92,7 @@ async function loadFirestoreData() {
 
 function setFormsReadOnly() {
   document.querySelectorAll("form").forEach((form) => {
-    if (form.dataset.firestoreWrite === "companyProfile") {
+    if (form.dataset.firestoreWrite === "companyProfile" || WRITABLE_FORM_IDS.has(form.id)) {
       return;
     }
 
@@ -183,6 +188,7 @@ function initSidebarMobileToggle() {
  * Switch and load tables/data for the loaded module
  */
 function renderModule(sectionId) {
+  activeSectionId = sectionId;
   currentEditId = null; // Clear edit states
   
   // Dynamic form overrides and resets
@@ -190,7 +196,13 @@ function renderModule(sectionId) {
   forms.forEach(f => f.reset());
   
   const submitBtns = document.querySelectorAll(".submit-btn");
-  submitBtns.forEach(btn => btn.textContent = "Read Only");
+  submitBtns.forEach(btn => {
+    if (WRITABLE_FORM_IDS.has(btn.closest("form")?.id)) {
+      btn.textContent = "Save Record";
+    } else {
+      btn.textContent = "Read Only";
+    }
+  });
 
   // Load specific renderers
   switch (sectionId) {
@@ -466,11 +478,22 @@ function renderTable(key, tableBodyId) {
       `;
     }
 
-    // Step 1 is intentionally read-only: writes/edit/delete will be added in the next phase.
-    tr.innerHTML = `
-      ${cellsHTML}
-      <td class="text-right" style="white-space: nowrap; color: var(--text-muted);">Read only</td>
-    `;
+    if (isWritableKey(key)) {
+      tr.innerHTML = `
+        ${cellsHTML}
+        <td class="text-right" style="white-space: nowrap;">
+          <button class="btn-secondary btn-sm edit-btn" style="padding: 0.25rem 0.5rem; margin-right: 4px;">Edit</button>
+          <button class="btn-danger btn-sm delete-btn" style="padding: 0.25rem 0.5rem;">Delete</button>
+        </td>
+      `;
+      tr.querySelector(".edit-btn").addEventListener("click", () => loadRecordForEdit(key, row.id));
+      tr.querySelector(".delete-btn").addEventListener("click", () => deleteRecord(key, row.id));
+    } else {
+      tr.innerHTML = `
+        ${cellsHTML}
+        <td class="text-right" style="white-space: nowrap; color: var(--text-muted);">Read only</td>
+      `;
+    }
 
     tbody.appendChild(tr);
   });
@@ -588,8 +611,288 @@ function renderAccountingSummary() {
 /**
  * Handle form editing states
  */
-function loadRecordForEdit() {
-  showToast(READ_ONLY_MESSAGE, "info");
+function isWritableKey(key) {
+  return WRITABLE_KEYS.has(key);
+}
+
+function initWritableFormListeners() {
+  setupFirestoreForm({
+    formId: "product-form",
+    key: KEYS.products,
+    submitButtonId: "product-submit-btn",
+    validate: (data) => data.name && data.sku && data.unit,
+    getData: () => ({
+      name: getValue("prod-name"),
+      sku: getValue("prod-sku"),
+      category: getValue("prod-category"),
+      unit: getValue("prod-unit"),
+      mrp: getNumber("prod-mrp"),
+      salePrice: getNumber("prod-saleprice"),
+      costPrice: getNumber("prod-costprice"),
+      openingStock: getNumber("prod-opening"),
+      currentStock: getNumber("prod-current"),
+      minimumStock: getNumber("prod-minimum"),
+      status: getValue("prod-status")
+    }),
+    populate: (record) => {
+      setValue("prod-name", record.name);
+      setValue("prod-sku", record.sku);
+      setValue("prod-category", record.category);
+      setValue("prod-unit", record.unit);
+      setValue("prod-mrp", record.mrp);
+      setValue("prod-saleprice", record.salePrice);
+      setValue("prod-costprice", record.costPrice);
+      setValue("prod-opening", record.openingStock);
+      setValue("prod-current", record.currentStock);
+      setValue("prod-minimum", record.minimumStock);
+      setValue("prod-status", record.status);
+    }
+  });
+
+  setupFirestoreForm({
+    formId: "customer-form",
+    key: KEYS.customers,
+    submitButtonId: "customer-submit-btn",
+    validate: (data) => data.name && data.phone && data.place,
+    getData: () => ({
+      name: getValue("cust-name"),
+      phone: getValue("cust-phone"),
+      whatsapp: getValue("cust-whatsapp"),
+      place: getValue("cust-place"),
+      pin: getValue("cust-pin"),
+      address: getValue("cust-address"),
+      type: getValue("cust-type"),
+      notes: getValue("cust-notes")
+    }),
+    populate: (record) => {
+      setValue("cust-name", record.name);
+      setValue("cust-phone", record.phone);
+      setValue("cust-whatsapp", record.whatsapp);
+      setValue("cust-place", record.place);
+      setValue("cust-pin", record.pin);
+      setValue("cust-address", record.address);
+      setValue("cust-type", record.type);
+      setValue("cust-notes", record.notes);
+    }
+  });
+
+  setupFirestoreForm({
+    formId: "supplier-form",
+    key: KEYS.suppliers,
+    submitButtonId: "supplier-submit-btn",
+    validate: (data) => data.name && data.phone && data.place,
+    getData: () => ({
+      name: getValue("supp-name"),
+      phone: getValue("supp-phone"),
+      place: getValue("supp-place"),
+      address: getValue("supp-address"),
+      gst: getValue("supp-gst"),
+      itemSupplied: getValue("supp-item"),
+      terms: getValue("supp-terms"),
+      notes: getValue("supp-notes")
+    }),
+    populate: (record) => {
+      setValue("supp-name", record.name);
+      setValue("supp-phone", record.phone);
+      setValue("supp-place", record.place);
+      setValue("supp-address", record.address);
+      setValue("supp-gst", record.gst);
+      setValue("supp-item", record.itemSupplied);
+      setValue("supp-terms", record.terms);
+      setValue("supp-notes", record.notes);
+    }
+  });
+
+  setupFirestoreForm({
+    formId: "investors-form",
+    key: KEYS.investors,
+    submitButtonId: "investors-submit-btn",
+    validate: (data) => data.name && data.email && data.amount > 0,
+    getData: () => ({
+      name: getValue("inv-name"),
+      phone: getValue("inv-phone"),
+      email: getValue("inv-email"),
+      address: getValue("inv-address"),
+      amount: getNumber("inv-amount"),
+      share: getNumber("inv-share"),
+      date: getValue("inv-date"),
+      status: getValue("inv-status"),
+      notes: getValue("inv-notes")
+    }),
+    populate: (record) => {
+      setValue("inv-name", record.name);
+      setValue("inv-phone", record.phone);
+      setValue("inv-email", record.email);
+      setValue("inv-address", record.address);
+      setValue("inv-amount", record.amount);
+      setValue("inv-share", record.share);
+      setValue("inv-date", record.date);
+      setValue("inv-status", record.status);
+      setValue("inv-notes", record.notes);
+    }
+  });
+}
+
+function setupFirestoreForm(config) {
+  const form = document.getElementById(config.formId);
+  if (!form) return;
+
+  form.addEventListener("submit", async (event) => {
+    event.preventDefault();
+    const data = config.getData();
+    if (!config.validate(data)) {
+      showToast("Please fill all required fields correctly.", "error");
+      return;
+    }
+
+    const button = document.getElementById(config.submitButtonId);
+    if (button) button.disabled = true;
+
+    try {
+      if (currentEditId && activeSectionKey() === config.key) {
+        await updateCollectionRecord(COLLECTION_BY_KEY[config.key], currentEditId, data);
+        showToast("Record updated in Firebase.", "success");
+      } else {
+        await createCollectionRecord(COLLECTION_BY_KEY[config.key], data);
+        showToast("Record created in Firebase.", "success");
+      }
+      currentEditId = null;
+      form.reset();
+      if (button) button.textContent = "Save Record";
+      await refreshActiveData();
+    } catch (err) {
+      console.error("Firestore write failed", err);
+      showToast("Firebase write failed. Please check permissions.", "error");
+    } finally {
+      if (button) button.disabled = false;
+    }
+  });
+}
+
+function loadRecordForEdit(key, id) {
+  if (!isWritableKey(key)) {
+    showToast(READ_ONLY_MESSAGE, "info");
+    return;
+  }
+
+  const record = getStoredRecords(key).find((item) => item.id === id);
+  const config = getFormConfigForKey(key);
+  if (!record || !config) return;
+
+  currentEditId = id;
+  config.populate(record);
+  const button = document.getElementById(config.submitButtonId);
+  if (button) button.textContent = "Update Record";
+  showToast("Record loaded for editing.", "info");
+}
+
+async function deleteRecord(key, id) {
+  if (!isWritableKey(key)) {
+    showToast(READ_ONLY_MESSAGE, "info");
+    return;
+  }
+
+  if (!confirm("Delete this Firebase record?")) return;
+
+  try {
+    await deleteCollectionRecord(COLLECTION_BY_KEY[key], id);
+    showToast("Record deleted from Firebase.", "success");
+    await refreshActiveData();
+  } catch (err) {
+    console.error("Firestore delete failed", err);
+    showToast("Firebase delete failed. Please check permissions.", "error");
+  }
+}
+
+function getFormConfigForKey(key) {
+  const formMap = {
+    [KEYS.products]: {
+      submitButtonId: "product-submit-btn",
+      populate: (record) => {
+        setValue("prod-name", record.name);
+        setValue("prod-sku", record.sku);
+        setValue("prod-category", record.category);
+        setValue("prod-unit", record.unit);
+        setValue("prod-mrp", record.mrp);
+        setValue("prod-saleprice", record.salePrice);
+        setValue("prod-costprice", record.costPrice);
+        setValue("prod-opening", record.openingStock);
+        setValue("prod-current", record.currentStock);
+        setValue("prod-minimum", record.minimumStock);
+        setValue("prod-status", record.status);
+      }
+    },
+    [KEYS.customers]: {
+      submitButtonId: "customer-submit-btn",
+      populate: (record) => {
+        setValue("cust-name", record.name);
+        setValue("cust-phone", record.phone);
+        setValue("cust-whatsapp", record.whatsapp);
+        setValue("cust-place", record.place);
+        setValue("cust-pin", record.pin);
+        setValue("cust-address", record.address);
+        setValue("cust-type", record.type);
+        setValue("cust-notes", record.notes);
+      }
+    },
+    [KEYS.suppliers]: {
+      submitButtonId: "supplier-submit-btn",
+      populate: (record) => {
+        setValue("supp-name", record.name);
+        setValue("supp-phone", record.phone);
+        setValue("supp-place", record.place);
+        setValue("supp-address", record.address);
+        setValue("supp-gst", record.gst);
+        setValue("supp-item", record.itemSupplied);
+        setValue("supp-terms", record.terms);
+        setValue("supp-notes", record.notes);
+      }
+    },
+    [KEYS.investors]: {
+      submitButtonId: "investors-submit-btn",
+      populate: (record) => {
+        setValue("inv-name", record.name);
+        setValue("inv-phone", record.phone);
+        setValue("inv-email", record.email);
+        setValue("inv-address", record.address);
+        setValue("inv-amount", record.amount);
+        setValue("inv-share", record.share);
+        setValue("inv-date", record.date);
+        setValue("inv-status", record.status);
+        setValue("inv-notes", record.notes);
+      }
+    }
+  };
+  return formMap[key];
+}
+
+function activeSectionKey() {
+  return {
+    products: KEYS.products,
+    customers: KEYS.customers,
+    suppliers: KEYS.suppliers,
+    investors: KEYS.investors
+  }[activeSectionId];
+}
+
+async function refreshActiveData() {
+  await loadFirestoreData();
+  renderModule(activeSectionId);
+  updateDashboardMetrics();
+}
+
+function getValue(id) {
+  return document.getElementById(id)?.value.trim() || "";
+}
+
+function getNumber(id) {
+  const value = parseFloat(document.getElementById(id)?.value || "0");
+  return Number.isFinite(value) ? value : 0;
+}
+
+function setValue(id, value) {
+  const input = document.getElementById(id);
+  if (input) input.value = value ?? "";
 }
 
 function initFormListeners() {
@@ -597,10 +900,6 @@ function initFormListeners() {
 }
 
 function deleteTransactionRecord() {
-  showToast(READ_ONLY_MESSAGE, "info");
-}
-
-function deleteRecord() {
   showToast(READ_ONLY_MESSAGE, "info");
 }
 

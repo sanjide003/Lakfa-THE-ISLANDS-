@@ -1,6 +1,6 @@
 /* Lakfa ERP Firestore Data Layer */
-import { db } from "./firebase-config.js";
-import { collection, doc, getDoc, getDocs, query, serverTimestamp, setDoc } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+import { auth, db } from "./firebase-config.js";
+import { addDoc, collection, deleteDoc, doc, getDoc, getDocs, query, serverTimestamp, setDoc, updateDoc } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
 export const COLLECTIONS = {
   products: "products",
@@ -57,4 +57,32 @@ export async function saveDocument(collectionName, documentId, payload) {
     },
     { merge: true }
   );
+}
+
+function auditFields(isCreate = false) {
+  const user = auth.currentUser;
+  return {
+    ...(isCreate ? { createdAt: serverTimestamp(), createdBy: user?.uid || null } : {}),
+    updatedAt: serverTimestamp(),
+    updatedBy: user?.uid || null
+  };
+}
+
+export async function createCollectionRecord(collectionName, payload) {
+  const docRef = await addDoc(collection(db, collectionName), {
+    ...payload,
+    ...auditFields(true)
+  });
+  return docRef.id;
+}
+
+export async function updateCollectionRecord(collectionName, documentId, payload) {
+  await updateDoc(doc(db, collectionName, documentId), {
+    ...payload,
+    ...auditFields(false)
+  });
+}
+
+export async function deleteCollectionRecord(collectionName, documentId) {
+  await deleteDoc(doc(db, collectionName, documentId));
 }

@@ -120,6 +120,6 @@ Deploying this project to Vercel takes less than a minute and requires no comman
 ---
 
 ## 🔮 Future Roadmap (Phase 2 Development)
-*   **Firestore Write Workflows:** Enable the remaining admin create/update/delete forms after the company profile write flow is verified.
+*   **Firestore Write Workflows:** Products, customers, suppliers, and investors now support admin create/update/delete with audit fields. Remaining operational modules stay read-only until their write workflows are implemented.
 *   **Invoicing & GST Forms:** Automatically generate professional PDFs and compile GSTR-1 summaries.
 *   **WhatsApp CRM:** Trigger automated dispatch alerts, delivery trackers, and confirmation messages directly to customer phone numbers.
