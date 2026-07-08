@@ -1,7 +1,7 @@
 /* Lakfa ERP Manager Controller */
 import { logoutUser } from "./role-guard.js";
 import { formatCurrency, formatDate, showToast } from "./utils.js";
-import { COLLECTIONS, createCollectionRecord, deleteCollectionRecord, getAllCollections, updateCollectionRecord } from "./firebase-db.js";
+import { COLLECTIONS, commitBatchOperations, createCollectionRecord, deleteCollectionRecord, getAllCollections, updateCollectionRecord } from "./firebase-db.js";
 import { initCompanyProfileForm } from "./company-profile.js";
 
 // Keys mapped to Firestore collections
@@ -31,12 +31,12 @@ const READ_ONLY_MESSAGE = "This module is read-only until its Firestore write wo
 const WRITABLE_FORM_IDS = new Set([
   "product-form", "customer-form", "supplier-form", "investors-form",
   "purchase-form", "inventory-form", "sales-form", "orders-form", "delivery-form",
-  "expenses-form", "income-form", "cashbook-form", "bankbook-form"
+  "expenses-form", "income-form", "cashbook-form", "bankbook-form", "production-form", "sharing-form"
 ]);
 const WRITABLE_KEYS = new Set([
   KEYS.products, KEYS.customers, KEYS.suppliers, KEYS.investors,
   KEYS.purchases, KEYS.inventory, KEYS.sales, KEYS.orders, KEYS.delivery,
-  KEYS.expenses, KEYS.income, KEYS.cashBook, KEYS.bankBook
+  KEYS.expenses, KEYS.income, KEYS.cashBook, KEYS.bankBook, KEYS.production, KEYS.sharing
 ]);
 
 const COLLECTION_BY_KEY = {
@@ -772,10 +772,7 @@ function initWritableFormListeners() {
     },
     populate: populatePurchase,
     afterSave: async (data, meta) => {
-      if (!meta.isUpdate) {
-        await adjustInventoryStock(data.item, data.qty, "purchase", data.invoice);
-        await createLedgerEntryFromPayment(data, "Purchase", data.totalAmount, "out", data.invoice);
-      }
+      await reconcileStockAndLedger(data, { ...meta, moduleName: "Purchase", stockName: data.item, stockDelta: data.qty, amount: data.totalAmount, direction: "out", reference: data.invoice });
     }
   });
 
@@ -825,10 +822,7 @@ function initWritableFormListeners() {
     },
     populate: populateSales,
     afterSave: async (data, meta) => {
-      if (!meta.isUpdate) {
-        await adjustInventoryStock(data.product, -data.qty, "sale", data.customer);
-        await createLedgerEntryFromPayment(data, "Sales", data.finalAmount, "in", data.customer);
-      }
+      await reconcileStockAndLedger(data, { ...meta, moduleName: "Sales", stockName: data.product, stockDelta: -data.qty, amount: data.finalAmount, direction: "in", reference: data.customer });
     }
   });
 
@@ -858,9 +852,7 @@ function initWritableFormListeners() {
     },
     populate: populateOrders,
     afterSave: async (data, meta) => {
-      if (!meta.isUpdate) {
-        await createLedgerEntryFromPayment(data, "Order", data.totalPayable, "in", data.customer);
-      }
+      await reconcileLedgerOnly(data, { ...meta, moduleName: "Order", amount: data.totalPayable, direction: "in", reference: data.customer });
     }
   });
 
@@ -900,9 +892,7 @@ function initWritableFormListeners() {
     }),
     populate: populateExpenses,
     afterSave: async (data, meta) => {
-      if (!meta.isUpdate) {
-        await createLedgerEntryFromPayment(data, "Expense", data.amount, "out", data.receipt || data.paidTo);
-      }
+      await reconcileLedgerOnly(data, { ...meta, moduleName: "Expense", amount: data.amount, direction: "out", reference: data.receipt || data.paidTo });
     }
   });
 
@@ -922,9 +912,7 @@ function initWritableFormListeners() {
     }),
     populate: populateIncome,
     afterSave: async (data, meta) => {
-      if (!meta.isUpdate) {
-        await createLedgerEntryFromPayment(data, "Income", data.amount, "in", data.receivedFrom);
-      }
+      await reconcileLedgerOnly(data, { ...meta, moduleName: "Income", amount: data.amount, direction: "in", reference: data.receivedFrom });
     }
   });
 
@@ -946,7 +934,10 @@ function initWritableFormListeners() {
         ref: getValue("cb-ref")
       };
     },
-    populate: populateCashBook
+    populate: populateCashBook,
+    afterSave: async (data, meta) => {
+      await reconcileLedgerBalances(KEYS.cashBook, data, meta);
+    }
   });
 
   setupFirestoreForm({
@@ -968,7 +959,64 @@ function initWritableFormListeners() {
         refNum: getValue("bb-ref")
       };
     },
-    populate: populateBankBook
+    populate: populateBankBook,
+    afterSave: async (data, meta) => {
+      await reconcileLedgerBalances(KEYS.bankBook, data, meta);
+    }
+  });
+
+  setupFirestoreForm({
+    formId: "production-form",
+    key: KEYS.production,
+    submitButtonId: "production-submit-btn",
+    validate: (data) => data.batch && data.date && data.productName && data.quantityProduced > 0 && data.batchCost >= 0,
+    getData: () => ({
+      batch: getValue("prod-batch"),
+      date: getValue("prod-date"),
+      productName: getValue("prod-pname"),
+      rawMaterial: getValue("prod-raw"),
+      quantityProduced: getNumber("prod-qty"),
+      packingQty: getValue("prod-pack"),
+      wastage: getValue("prod-waste"),
+      batchCost: getNumber("prod-cost"),
+      staff: getValue("prod-staff"),
+      notes: getValue("prod-notes")
+    }),
+    populate: populateProduction,
+    afterSave: async (data, meta) => {
+      await reconcileProductionStock(data, meta);
+    },
+    beforeDelete: async (record) => {
+      await reconcileProductionStock(null, { isDelete: true, previous: record });
+    }
+  });
+
+  setupFirestoreForm({
+    formId: "sharing-form",
+    key: KEYS.sharing,
+    submitButtonId: "sharing-submit-btn",
+    validate: (data) => data.period && data.investor && data.share > 0 && data.totalProfit >= 0,
+    getData: () => {
+      const totalProfit = getNumber("shr-profit");
+      const share = getNumber("shr-percentage");
+      return {
+        period: getValue("shr-period"),
+        totalProfit,
+        investor: getValue("shr-investor"),
+        share,
+        amount: (totalProfit * share) / 100,
+        status: getValue("shr-status"),
+        date: getValue("shr-date"),
+        notes: getValue("shr-notes")
+      };
+    },
+    populate: populateSharing,
+    afterSave: async (data, meta) => {
+      await reconcileProfitSharingLedger(data, meta);
+    },
+    beforeDelete: async (record) => {
+      await reconcileProfitSharingLedger(null, { isDelete: true, previous: record });
+    }
   });
 }
 
@@ -990,6 +1038,7 @@ function setupFirestoreForm(config) {
     try {
       let savedId = currentEditId;
       const isUpdate = Boolean(currentEditId && activeSectionKey() === config.key);
+      const previous = isUpdate ? getStoredRecords(config.key).find((item) => item.id === currentEditId) : null;
       if (isUpdate) {
         await updateCollectionRecord(COLLECTION_BY_KEY[config.key], currentEditId, data);
         showToast("Record updated in Firebase.", "success");
@@ -998,7 +1047,7 @@ function setupFirestoreForm(config) {
         showToast("Record created in Firebase.", "success");
       }
       if (config.afterSave) {
-        await config.afterSave(data, { id: savedId, isUpdate });
+        await config.afterSave(data, { id: savedId, isUpdate, previous });
       }
       currentEditId = null;
       form.reset();
@@ -1039,6 +1088,11 @@ async function deleteRecord(key, id) {
   if (!confirm("Delete this Firebase record?")) return;
 
   try {
+    const config = getFormConfigForKey(key);
+    const record = getStoredRecords(key).find((item) => item.id === id);
+    if (config?.beforeDelete && record) {
+      await config.beforeDelete(record);
+    }
     await deleteCollectionRecord(COLLECTION_BY_KEY[key], id);
     showToast("Record deleted from Firebase.", "success");
     await refreshActiveData();
@@ -1104,6 +1158,205 @@ async function createLedgerEntryFromPayment(data, moduleName, amount, direction,
       sourceModule: moduleName
     });
   }
+}
+
+async function reconcileStockAndLedger(data, meta) {
+  const operations = [];
+  addStockReversalOperations(operations, meta.previous, meta.moduleName);
+  if (data) addStockApplyOperations(operations, meta.stockName, meta.stockDelta, meta.moduleName, meta.reference);
+  addLinkedLedgerDeleteOperations(operations, meta.id);
+  if (data) addLinkedLedgerCreateOperation(operations, data, meta);
+  if (operations.length) await commitBatchOperations(operations);
+}
+
+async function reconcileLedgerOnly(data, meta) {
+  const operations = [];
+  addLinkedLedgerDeleteOperations(operations, meta.id);
+  if (data) addLinkedLedgerCreateOperation(operations, data, meta);
+  if (operations.length) await commitBatchOperations(operations);
+}
+
+async function reconcileProductionStock(data, meta) {
+  const operations = [];
+  addStockReversalOperations(operations, meta.previous, "Production");
+  if (!meta.isDelete && data) {
+    addStockApplyOperations(operations, data.productName, data.quantityProduced, "Production", data.batch);
+  }
+  if (operations.length) await commitBatchOperations(operations);
+}
+
+async function reconcileProfitSharingLedger(data, meta) {
+  const operations = [];
+  addLinkedLedgerDeleteOperations(operations, meta.id || meta.previous?.id);
+  if (!meta.isDelete && data) {
+    addLinkedLedgerCreateOperation(operations, data, {
+      ...meta,
+      moduleName: "Profit Sharing",
+      amount: data.amount,
+      direction: "out",
+      reference: `${data.period} - ${data.investor}`
+    });
+  }
+  if (operations.length) await commitBatchOperations(operations);
+}
+
+function addStockReversalOperations(operations, previous, moduleName) {
+  if (!previous) return;
+
+  const stockName = previous.item || previous.product || previous.productName;
+  const delta = getStockDelta(previous, moduleName);
+  if (!stockName || !delta) return;
+  addStockApplyOperations(operations, stockName, -delta, `${moduleName} reversal`, previous.invoice || previous.customer || previous.batch);
+}
+
+function getStockDelta(record, moduleName) {
+  if (moduleName === "Purchase") return getNumberFromValue(record.qty);
+  if (moduleName === "Sales") return -getNumberFromValue(record.qty);
+  if (moduleName === "Production") return getNumberFromValue(record.quantityProduced);
+  return 0;
+}
+
+function addStockApplyOperations(operations, itemName, quantityDelta, sourceType, sourceRef) {
+  if (!itemName || !quantityDelta) return;
+
+  const inventoryRecord = getStoredRecords(KEYS.inventory).find((item) =>
+    (item.name || "").toLowerCase() === itemName.toLowerCase()
+  );
+  if (!inventoryRecord?.id) return;
+
+  const currentStock = getNumberFromValue(inventoryRecord.currentStock);
+  const stockIn = Math.max(quantityDelta, 0);
+  const stockOut = Math.max(-quantityDelta, 0);
+  const existingOperation = operations.find((operation) =>
+    operation.type === "update"
+    && operation.collectionName === COLLECTIONS.inventory
+    && operation.id === inventoryRecord.id
+  );
+
+  if (existingOperation) {
+    existingOperation.payload.currentStock = Math.max(getNumberFromValue(existingOperation.payload.currentStock) + quantityDelta, 0);
+    existingOperation.payload.stockIn = Math.max(getNumberFromValue(existingOperation.payload.stockIn) + stockIn, 0);
+    existingOperation.payload.stockOut = Math.max(getNumberFromValue(existingOperation.payload.stockOut) + stockOut, 0);
+    existingOperation.payload.lastStockSource = sourceType;
+    existingOperation.payload.lastStockRef = sourceRef || "";
+    return;
+  }
+
+  operations.push({
+    type: "update",
+    collectionName: COLLECTIONS.inventory,
+    id: inventoryRecord.id,
+    payload: {
+      currentStock: Math.max(currentStock + quantityDelta, 0),
+      stockIn: Math.max(getNumberFromValue(inventoryRecord.stockIn) + stockIn, 0),
+      stockOut: Math.max(getNumberFromValue(inventoryRecord.stockOut) + stockOut, 0),
+      lastUpdated: new Date().toISOString().slice(0, 10),
+      lastStockSource: sourceType,
+      lastStockRef: sourceRef || ""
+    }
+  });
+}
+
+function addLinkedLedgerDeleteOperations(operations, sourceId) {
+  if (!sourceId) return;
+  [KEYS.cashBook, KEYS.bankBook].forEach((key) => {
+    getStoredRecords(key)
+      .filter((record) => record.sourceId === sourceId)
+      .forEach((record) => {
+        operations.push({
+          type: "delete",
+          collectionName: COLLECTION_BY_KEY[key],
+          id: record.id
+        });
+      });
+  });
+}
+
+function addLinkedLedgerCreateOperation(operations, data, meta) {
+  if (!meta.amount || data.paymentStatus === "Pending" || data.status === "Pending") return;
+
+  const paymentMode = data.paymentMode || data.mode || "Cash";
+  const isIn = meta.direction === "in";
+  const desc = `${meta.moduleName}: ${data.desc || data.item || data.product || data.customer || data.investor || meta.reference || "Record"}`;
+  const common = {
+    date: data.date || new Date().toISOString().slice(0, 10),
+    desc,
+    sourceModule: meta.moduleName,
+    sourceId: meta.id || "",
+    sourceRef: meta.reference || ""
+  };
+
+  if (paymentMode === "Cash") {
+    operations.push({
+      type: "set",
+      collectionName: COLLECTIONS.cashBook,
+      payload: {
+        ...common,
+        type: isIn ? "Cash In" : "Cash Out",
+        cashIn: isIn ? meta.amount : 0,
+        cashOut: isIn ? 0 : meta.amount,
+        balance: getProjectedCashBalance(isIn ? meta.amount : -meta.amount),
+        ref: meta.reference || meta.moduleName
+      }
+    });
+    return;
+  }
+
+  if (["Bank", "UPI", "Card"].includes(paymentMode)) {
+    operations.push({
+      type: "set",
+      collectionName: COLLECTIONS.bankBook,
+      payload: {
+        ...common,
+        bankName: paymentMode,
+        type: isIn ? "Amount In" : "Amount Out",
+        amountIn: isIn ? meta.amount : 0,
+        amountOut: isIn ? 0 : meta.amount,
+        balance: getProjectedBankBalance(isIn ? meta.amount : -meta.amount),
+        refNum: meta.reference || meta.moduleName
+      }
+    });
+  }
+}
+
+async function reconcileLedgerBalances(key, data, meta) {
+  const records = [...getStoredRecords(key)];
+  const amountFieldIn = key === KEYS.cashBook ? "cashIn" : "amountIn";
+  const amountFieldOut = key === KEYS.cashBook ? "cashOut" : "amountOut";
+  const balanceField = "balance";
+  const changedIndex = records.findIndex((record) => record.id === meta.id);
+  if (changedIndex === -1) return;
+
+  records[changedIndex] = { ...records[changedIndex], ...data };
+  let runningBalance = changedIndex > 0 ? getNumberFromValue(records[changedIndex - 1][balanceField]) : 0;
+  const operations = records.slice(changedIndex).map((record) => {
+    runningBalance += getNumberFromValue(record[amountFieldIn]) - getNumberFromValue(record[amountFieldOut]);
+    return {
+      type: "update",
+      collectionName: COLLECTION_BY_KEY[key],
+      id: record.id,
+      payload: { balance: runningBalance }
+    };
+  });
+
+  if (operations.length) await commitBatchOperations(operations);
+}
+
+async function reconcileLedgerBalancesAfterDelete(key, deletedRecord) {
+  const records = getStoredRecords(key).filter((record) => record.id !== deletedRecord.id);
+  const amountFieldIn = key === KEYS.cashBook ? "cashIn" : "amountIn";
+  const amountFieldOut = key === KEYS.cashBook ? "cashOut" : "amountOut";
+  let runningBalance = 0;
+  const operations = records.map((record) => {
+    runningBalance += getNumberFromValue(record[amountFieldIn]) - getNumberFromValue(record[amountFieldOut]);
+    return {
+      type: "update",
+      collectionName: COLLECTION_BY_KEY[key],
+      id: record.id,
+      payload: { balance: runningBalance }
+    };
+  });
+  if (operations.length) await commitBatchOperations(operations);
 }
 
 function getProjectedCashBalance(delta) {
@@ -1180,15 +1433,53 @@ function getFormConfigForKey(key) {
         setValue("inv-notes", record.notes);
       }
     },
-    [KEYS.purchases]: { submitButtonId: "purchase-submit-btn", populate: populatePurchase },
+    [KEYS.purchases]: {
+      submitButtonId: "purchase-submit-btn",
+      populate: populatePurchase,
+      beforeDelete: (record) => reconcileStockAndLedger(null, { id: record.id, previous: record, moduleName: "Purchase" })
+    },
     [KEYS.inventory]: { submitButtonId: "inventory-submit-btn", populate: populateInventory },
-    [KEYS.sales]: { submitButtonId: "sales-submit-btn", populate: populateSales },
-    [KEYS.orders]: { submitButtonId: "orders-submit-btn", populate: populateOrders },
+    [KEYS.sales]: {
+      submitButtonId: "sales-submit-btn",
+      populate: populateSales,
+      beforeDelete: (record) => reconcileStockAndLedger(null, { id: record.id, previous: record, moduleName: "Sales" })
+    },
+    [KEYS.orders]: {
+      submitButtonId: "orders-submit-btn",
+      populate: populateOrders,
+      beforeDelete: (record) => reconcileLedgerOnly(null, { id: record.id })
+    },
     [KEYS.delivery]: { submitButtonId: "delivery-submit-btn", populate: populateDelivery },
-    [KEYS.expenses]: { submitButtonId: "expenses-submit-btn", populate: populateExpenses },
-    [KEYS.income]: { submitButtonId: "income-submit-btn", populate: populateIncome },
-    [KEYS.cashBook]: { submitButtonId: "cashbook-submit-btn", populate: populateCashBook },
-    [KEYS.bankBook]: { submitButtonId: "bankbook-submit-btn", populate: populateBankBook }
+    [KEYS.expenses]: {
+      submitButtonId: "expenses-submit-btn",
+      populate: populateExpenses,
+      beforeDelete: (record) => reconcileLedgerOnly(null, { id: record.id })
+    },
+    [KEYS.income]: {
+      submitButtonId: "income-submit-btn",
+      populate: populateIncome,
+      beforeDelete: (record) => reconcileLedgerOnly(null, { id: record.id })
+    },
+    [KEYS.cashBook]: {
+      submitButtonId: "cashbook-submit-btn",
+      populate: populateCashBook,
+      beforeDelete: (record) => reconcileLedgerBalancesAfterDelete(KEYS.cashBook, record)
+    },
+    [KEYS.bankBook]: {
+      submitButtonId: "bankbook-submit-btn",
+      populate: populateBankBook,
+      beforeDelete: (record) => reconcileLedgerBalancesAfterDelete(KEYS.bankBook, record)
+    },
+    [KEYS.production]: {
+      submitButtonId: "production-submit-btn",
+      populate: populateProduction,
+      beforeDelete: (record) => reconcileProductionStock(null, { isDelete: true, previous: record })
+    },
+    [KEYS.sharing]: {
+      submitButtonId: "sharing-submit-btn",
+      populate: populateSharing,
+      beforeDelete: (record) => reconcileProfitSharingLedger(null, { isDelete: true, previous: record })
+    }
   };
   return formMap[key];
 }
@@ -1300,6 +1591,30 @@ function populateBankBook(record) {
   setValue("bb-ref", record.refNum);
 }
 
+function populateProduction(record) {
+  setValue("prod-batch", record.batch);
+  setValue("prod-date", record.date);
+  setValue("prod-pname", record.productName);
+  setValue("prod-raw", record.rawMaterial);
+  setValue("prod-qty", record.quantityProduced);
+  setValue("prod-pack", record.packingQty);
+  setValue("prod-waste", record.wastage);
+  setValue("prod-cost", record.batchCost);
+  setValue("prod-staff", record.staff);
+  setValue("prod-notes", record.notes);
+}
+
+function populateSharing(record) {
+  setValue("shr-period", record.period);
+  setValue("shr-profit", record.totalProfit);
+  setValue("shr-investor", record.investor);
+  setValue("shr-percentage", record.share);
+  setValue("shr-amount", record.amount);
+  setValue("shr-status", record.status);
+  setValue("shr-date", record.date);
+  setValue("shr-notes", record.notes);
+}
+
 function activeSectionKey() {
   return {
     products: KEYS.products,
@@ -1314,7 +1629,9 @@ function activeSectionKey() {
     expenses: KEYS.expenses,
     income: KEYS.income,
     cashbook: KEYS.cashBook,
-    bankbook: KEYS.bankBook
+    bankbook: KEYS.bankBook,
+    production: KEYS.production,
+    "investment-sharing": KEYS.sharing
   }[activeSectionId];
 }
 

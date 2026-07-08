@@ -1,6 +1,6 @@
 /* Lakfa ERP Firestore Data Layer */
 import { auth, db } from "./firebase-config.js";
-import { addDoc, collection, deleteDoc, doc, getDoc, getDocs, query, serverTimestamp, setDoc, updateDoc } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+import { addDoc, collection, deleteDoc, doc, getDoc, getDocs, query, serverTimestamp, setDoc, updateDoc, writeBatch } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
 export const COLLECTIONS = {
   products: "products",
@@ -85,4 +85,38 @@ export async function updateCollectionRecord(collectionName, documentId, payload
 
 export async function deleteCollectionRecord(collectionName, documentId) {
   await deleteDoc(doc(db, collectionName, documentId));
+}
+
+export async function commitBatchOperations(operations = []) {
+  const batch = writeBatch(db);
+  const generatedIds = [];
+
+  operations.forEach((operation) => {
+    const ref = operation.id
+      ? doc(db, operation.collectionName, operation.id)
+      : doc(collection(db, operation.collectionName));
+
+    if (!operation.id) generatedIds.push(ref.id);
+
+    if (operation.type === "set") {
+      batch.set(ref, {
+        ...operation.payload,
+        ...auditFields(true)
+      });
+    }
+
+    if (operation.type === "update") {
+      batch.update(ref, {
+        ...operation.payload,
+        ...auditFields(false)
+      });
+    }
+
+    if (operation.type === "delete") {
+      batch.delete(ref);
+    }
+  });
+
+  await batch.commit();
+  return generatedIds;
 }
