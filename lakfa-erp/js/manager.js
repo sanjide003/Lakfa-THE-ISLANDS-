@@ -27,6 +27,8 @@ const KEYS = {
 let currentEditId = null;
 let firestoreState = {};
 let activeSectionId = "dashboard";
+let activeOrderView = "pending";
+let activeDueFilter = "all";
 let appSettings = { modules: {} };
 const APP_SETTINGS_COLLECTION = "settings";
 const APP_SETTINGS_DOCUMENT = "appSettings";
@@ -82,7 +84,9 @@ document.addEventListener("DOMContentLoaded", async () => {
   initWritableFormListeners();
 
   // 5. Set up event listeners for sidebar routing (tab switching + history)
+  initSidebarAccordion();
   initSidebarRouting();
+  initOrderManagementUi();
 
   // 6. Initialize report export actions
   initReportExportActions();
@@ -159,14 +163,25 @@ function setFormsReadOnly() {
 /**
  * Tab/Section navigation via sidebar links
  */
+function initSidebarAccordion() {
+  document.querySelectorAll(".sidebar-group-toggle").forEach((button) => {
+    button.addEventListener("click", () => {
+      button.closest(".sidebar-group")?.classList.toggle("expanded");
+    });
+  });
+}
+
 function initSidebarRouting() {
   const sidebarItems = document.querySelectorAll(".sidebar-item[data-section]");
   const sections = document.querySelectorAll(".app-section");
   const headerPageTitle = document.getElementById("header-page-title");
 
-  const activateSection = (targetSection, pushHistory = true) => {
-    const item = document.querySelector(`.sidebar-item[data-section="${targetSection}"]`);
+  const activateSection = (targetSection, pushHistory = true, preferredItem = null) => {
+    const item = preferredItem || document.querySelector(`.sidebar-item[data-section="${targetSection}"]`);
     if (!item) return;
+    if (targetSection === "orders") {
+      activeOrderView = item.dataset.orderView || activeOrderView || "pending";
+    }
 
     // Close mobile sidebar if open
     const sidebar = document.getElementById("sidebar");
@@ -192,7 +207,10 @@ function initSidebarRouting() {
       }
 
       if (pushHistory) {
-        history.pushState({ section: targetSection }, "", `#${targetSection}`);
+        const hash = targetSection === "orders" && activeOrderView !== "pending"
+          ? `#orders-${activeOrderView}`
+          : `#${targetSection}`;
+        history.pushState({ section: targetSection, orderView: activeOrderView }, "", hash);
       }
 
       scrollActiveSectionToTop(activeSec);
@@ -204,26 +222,41 @@ function initSidebarRouting() {
     item.addEventListener("click", (e) => {
       e.preventDefault();
       const targetSection = item.getAttribute("data-section");
-      activateSection(targetSection, true);
+      activateSection(targetSection, true, item);
     });
   });
 
   window.addEventListener("popstate", (event) => {
-    const targetSection = event.state?.section || location.hash.replace("#", "") || "dashboard";
+    const hashTarget = normalizeHashSection(location.hash.replace("#", ""));
+    const targetSection = event.state?.section || hashTarget.section || "dashboard";
+    if (targetSection === "orders") activeOrderView = event.state?.orderView || hashTarget.orderView || "pending";
     activateSection(targetSection, false);
   });
 
   // Default initial render of active section, supporting direct hashes such as manager.html#sales
-  const requestedSection = location.hash.replace("#", "");
+  const hashTarget = normalizeHashSection(location.hash.replace("#", ""));
+  const requestedSection = hashTarget.section;
+  if (hashTarget.orderView) activeOrderView = hashTarget.orderView;
   const activeItem = requestedSection
-    ? document.querySelector(`.sidebar-item[data-section="${requestedSection}"]`)
+    ? document.querySelector(`.sidebar-item[data-section="${requestedSection}"][data-order-view="${activeOrderView}"]`) || document.querySelector(`.sidebar-item[data-section="${requestedSection}"]`)
     : document.querySelector(".sidebar-item.active");
 
   if (activeItem) {
     const defaultSec = activeItem.getAttribute("data-section");
-    history.replaceState({ section: defaultSec }, "", `#${defaultSec}`);
+    const initialHash = defaultSec === "orders" && activeOrderView !== "pending"
+      ? `#orders-${activeOrderView}`
+      : `#${defaultSec}`;
+    history.replaceState({ section: defaultSec, orderView: activeOrderView }, "", initialHash);
     activateSection(defaultSec, false);
   }
+}
+
+function normalizeHashSection(hash) {
+  if (!hash) return { section: "" };
+  if (hash.startsWith("orders-")) {
+    return { section: "orders", orderView: hash.replace("orders-", "") };
+  }
+  return { section: hash };
 }
 
 function scrollActiveSectionToTop(activeSection) {
@@ -413,7 +446,7 @@ function renderModule(sectionId) {
       renderTable(KEYS.sales, "sales-table-body");
       break;
     case "orders":
-      renderTable(KEYS.orders, "orders-table-body");
+      renderOrdersManagement();
       break;
     case "delivery":
       renderTable(KEYS.delivery, "delivery-table-body");
@@ -697,6 +730,261 @@ function renderTable(key, tableBodyId) {
 
     tbody.appendChild(tr);
   });
+}
+
+function initOrderManagementUi() {
+  const openBtn = document.getElementById("open-order-modal-btn");
+  const modal = document.getElementById("order-modal");
+  const closeButtons = ["close-order-modal-btn", "cancel-order-modal-btn"].map((id) => document.getElementById(id)).filter(Boolean);
+  openBtn?.addEventListener("click", () => openOrderModal());
+  closeButtons.forEach((button) => button.addEventListener("click", closeOrderModal));
+  modal?.addEventListener("click", (event) => {
+    if (event.target === modal) closeOrderModal();
+  });
+
+  document.querySelectorAll(".order-tab").forEach((button) => {
+    button.addEventListener("click", () => {
+      activeOrderView = button.dataset.orderTab || "pending";
+      activeDueFilter = "all";
+      history.pushState({ section: "orders", orderView: activeOrderView }, "", `#orders-${activeOrderView}`);
+      renderOrdersManagement();
+    });
+  });
+  document.querySelectorAll(".due-filter").forEach((button) => {
+    button.addEventListener("click", () => {
+      activeDueFilter = button.dataset.dueFilter || "all";
+      renderOrdersManagement();
+    });
+  });
+  ["orders-search", "orders-from-date", "orders-to-date"].forEach((id) => {
+    document.getElementById(id)?.addEventListener("input", renderOrdersManagement);
+  });
+  document.getElementById("orders-table-body")?.addEventListener("click", (event) => {
+    const target = event.target.closest("button");
+    if (!target) return;
+    const id = target.dataset.orderEdit || target.dataset.orderDelete || target.dataset.orderPrint || target.dataset.orderCopy || target.dataset.orderPayment;
+    if (!id) return;
+    if (target.dataset.orderEdit) {
+      openOrderModal();
+      loadRecordForEdit(KEYS.orders, id);
+    }
+    if (target.dataset.orderDelete) deleteRecord(KEYS.orders, id);
+    if (target.dataset.orderPrint) printDocument(KEYS.orders, id);
+    if (target.dataset.orderCopy) copyNotificationMessage(KEYS.orders, id);
+    if (target.dataset.orderPayment) {
+      openOrderModal();
+      loadRecordForEdit(KEYS.orders, id);
+      showToast("Update the first payment amount and save to adjust payment due.", "info");
+    }
+  });
+
+  ["ord-product", "ord-price-type", "ord-qty", "ord-amount", "ord-delivery", "ord-paid"].forEach((id) => {
+    document.getElementById(id)?.addEventListener("input", updateOrderTotals);
+    document.getElementById(id)?.addEventListener("change", updateOrderTotals);
+  });
+  ["ord-phone", "ord-customer"].forEach((id) => {
+    document.getElementById(id)?.addEventListener("input", autofillOrderCustomer);
+  });
+}
+
+function openOrderModal() {
+  const modal = document.getElementById("order-modal");
+  const form = document.getElementById("orders-form");
+  if (!modal) return;
+  form?.reset();
+  currentEditId = null;
+  setValue("ord-date", new Date().toISOString().slice(0, 10));
+  populateOrderProductOptions();
+  updateOrderTotals();
+  modal.hidden = false;
+  document.body.style.overflow = "hidden";
+}
+
+function closeOrderModal() {
+  const modal = document.getElementById("order-modal");
+  if (modal) modal.hidden = true;
+  document.body.style.overflow = "";
+}
+
+function populateOrderProductOptions(selectedValue = "") {
+  const select = document.getElementById("ord-product");
+  if (!select) return;
+  const products = getStoredRecords(KEYS.products);
+  select.innerHTML = `<option value="">-- Select Product --</option>`;
+  products.forEach((product) => {
+    const option = document.createElement("option");
+    option.value = product.name || product.id;
+    option.textContent = product.name || product.id;
+    option.dataset.salePrice = product.salePrice || product.mrp || 0;
+    option.dataset.mrp = product.mrp || product.salePrice || 0;
+    option.dataset.gstRate = product.gstRate || appSettings.modules?.orders?.gstRate || 0;
+    select.appendChild(option);
+  });
+  if (selectedValue && ![...select.options].some((option) => option.value === selectedValue)) {
+    const option = document.createElement("option");
+    option.value = selectedValue;
+    option.textContent = selectedValue;
+    select.appendChild(option);
+  }
+  select.value = selectedValue;
+}
+
+function updateOrderTotals() {
+  const productSelect = document.getElementById("ord-product");
+  const selectedOption = productSelect?.selectedOptions?.[0];
+  const priceType = getValue("ord-price-type");
+  const qty = Math.max(getNumber("ord-qty"), 1);
+  let unitAmount = getNumber("ord-amount");
+  const basePrice = getNumberFromValue(selectedOption?.dataset.salePrice);
+  const gstRate = getNumberFromValue(selectedOption?.dataset.gstRate);
+
+  if (priceType !== "custom") {
+    if (priceType === "promotion") unitAmount = 0;
+    if (priceType === "with-gst") unitAmount = basePrice;
+    if (priceType === "without-gst") unitAmount = gstRate ? basePrice / (1 + gstRate / 100) : basePrice;
+    setValue("ord-amount", (unitAmount * qty).toFixed(2));
+  }
+
+  const amount = getNumber("ord-amount");
+  const delivery = getNumber("ord-delivery");
+  const paid = getNumber("ord-paid");
+  const total = Math.max(amount + delivery, 0);
+  const balance = Math.max(total - paid, 0);
+  const credit = Math.max(paid - total, 0);
+  setValue("ord-payable", total.toFixed(2));
+  const paymentStatus = document.getElementById("ord-pstatus");
+  if (paymentStatus) {
+    paymentStatus.value = credit > 0 ? "Advance Credit" : paid <= 0 ? "Pending" : balance <= 0 ? "Paid" : "Partial";
+  }
+  const creditNote = document.getElementById("order-credit-note");
+  if (creditNote) {
+    creditNote.hidden = credit <= 0;
+    creditNote.textContent = credit > 0 ? `Extra payment ${formatCurrency(credit)} will be saved as this party/customer advance credit.` : "";
+  }
+}
+
+function autofillOrderCustomer(event) {
+  const value = (event.target.value || "").trim().toLowerCase();
+  if (value.length < 3) return;
+  const customers = getStoredRecords(KEYS.customers);
+  const orders = getStoredRecords(KEYS.orders);
+  const match = customers.find((customer) =>
+    [customer.phone, customer.whatsapp, customer.name].some((field) => String(field || "").toLowerCase().includes(value))
+  ) || orders.find((order) =>
+    [order.phone, order.customer, order.customerName].some((field) => String(field || "").toLowerCase().includes(value))
+  );
+  if (!match) return;
+  setValue("ord-customer", match.name || match.customer || match.customerName);
+  setValue("ord-phone", match.phone || match.whatsapp);
+  setValue("ord-gst", match.gst || match.gstNumber);
+  setValue("ord-shop", match.shopName || match.place || "");
+  setValue("ord-pin", match.pin || match.pincode || "");
+  setValue("ord-address", match.address || "");
+}
+
+function renderOrdersManagement() {
+  const tbody = document.getElementById("orders-table-body");
+  if (!tbody) return;
+
+  document.querySelectorAll(".order-tab").forEach((button) => button.classList.toggle("active", button.dataset.orderTab === activeOrderView));
+  document.querySelectorAll(".due-filter").forEach((button) => button.classList.toggle("active", button.dataset.dueFilter === activeDueFilter));
+  const dueFilters = document.getElementById("order-payment-due-filters");
+  if (dueFilters) dueFilters.hidden = activeOrderView !== "payment-due";
+
+  const search = getValue("orders-search").toLowerCase();
+  const fromDate = getValue("orders-from-date");
+  const toDate = getValue("orders-to-date");
+  const records = getStoredRecords(KEYS.orders).filter((order) => {
+    const status = normalizeOrderStatus(order.orderStatus);
+    const balance = getOrderBalance(order);
+    const haystack = [order.customer, order.customerName, order.phone, order.product, order.shopName].join(" ").toLowerCase();
+    if (search && !haystack.includes(search)) return false;
+    if (fromDate && (order.date || "") < fromDate) return false;
+    if (toDate && (order.date || "") > toDate) return false;
+    if (activeOrderView === "pending" && status !== "pending") return false;
+    if (activeOrderView === "processing" && status !== "processing") return false;
+    if (activeOrderView === "shipped" && status !== "shipped") return false;
+    if (activeOrderView === "delivered" && status !== "delivered") return false;
+    if (activeOrderView === "payment-due") {
+      if (balance <= 0) return false;
+      if (activeDueFilter !== "all" && status !== activeDueFilter) return false;
+    }
+    if (activeOrderView === "promotions" && !isPromotionOrder(order)) return false;
+    if (activeOrderView === "returns" && status !== "returned" && !order.isReturned) return false;
+    if (activeOrderView === "cancelled" && status !== "cancelled" && !order.isCancelled) return false;
+    if (activeOrderView === "recycle-bin" && !order.deletedAt) return false;
+    if (activeOrderView !== "recycle-bin" && order.deletedAt) return false;
+    return true;
+  });
+
+  tbody.innerHTML = "";
+  if (!records.length) {
+    tbody.innerHTML = `<tr><td colspan="8" class="text-center" style="color: var(--text-muted);">No Firebase orders found for this filter.</td></tr>`;
+    return;
+  }
+
+  records.forEach((order) => {
+    const paid = getNumberFromValue(order.paidAmount);
+    const balance = getOrderBalance(order);
+    const expense = getNumberFromValue(order.deliveryCharge || order.expenseTotal);
+    const total = getNumberFromValue(order.totalPayable);
+    const tr = document.createElement("tr");
+    tr.dataset.id = order.id;
+    tr.innerHTML = `
+      <td><input type="checkbox" aria-label="Select order"></td>
+      <td><strong>${formatDate(order.date)}</strong><br><small>${order.source || "Direct"}</small></td>
+      <td class="order-contact"><strong>${order.customer || order.customerName || "-"}</strong>${order.phone || ""}<br><small>PIN: ${order.pincode || order.pin || "-"}</small></td>
+      <td>${renderOrderItems(order)}</td>
+      <td><span class="badge ${getOrderStatusBadge(order.orderStatus)}">${order.orderStatus || "Pending"}</span></td>
+      <td><div class="order-money-lines"><div><span>Total</span><strong>${formatCurrency(expense)}</strong></div><div class="paid"><span>Paid</span><strong>${formatCurrency(0)}</strong></div><div class="balance"><span>Balance</span><strong>${formatCurrency(expense)}</strong></div></div></td>
+      <td><div class="order-money-lines"><div><span>Total</span><strong>${formatCurrency(total)}</strong></div><div class="paid"><span>Paid</span><strong>${formatCurrency(paid)}</strong></div><div class="balance"><span>Balance</span><strong>${formatCurrency(balance)}</strong></div></div></td>
+      <td>${renderOrderActions(order)}</td>
+    `;
+    tbody.appendChild(tr);
+  });
+}
+
+function renderOrderItems(order) {
+  if (Array.isArray(order.items) && order.items.length) {
+    return order.items.map((item) => `${item.name || item.product || "Item"} (${item.qty || item.quantity || 1})`).join("<br>");
+  }
+  return `${order.product || "-"} (${order.qty || 1})`;
+}
+
+function renderOrderActions(order) {
+  if (!isWritableKey(KEYS.orders)) return `<span style="color: var(--text-muted);">Read only</span>`;
+  return `<div class="order-actions">
+    <button class="btn-secondary btn-sm" type="button" data-order-print="${order.id}">Label</button>
+    <button class="btn-secondary btn-sm print-doc-btn" type="button" data-order-print="${order.id}">Bill</button>
+    <button class="btn-secondary btn-sm copy-notification-btn" type="button" data-order-copy="${order.id}">Copy Msg</button>
+    <button class="btn-secondary btn-sm edit-btn" type="button" data-order-edit="${order.id}">Update</button>
+    <button class="btn-primary btn-sm" type="button" data-order-payment="${order.id}">Payment</button>
+    <button class="btn-danger btn-sm delete-btn" type="button" data-order-delete="${order.id}">Delete</button>
+  </div>`;
+}
+
+function getOrderStatusBadge(status) {
+  const normalized = normalizeOrderStatus(status);
+  if (normalized === "delivered") return "badge-success";
+  if (["cancelled", "returned"].includes(normalized)) return "badge-danger";
+  if (normalized === "shipped") return "badge-info";
+  return "badge-warning";
+}
+
+function normalizeOrderStatus(status = "") {
+  const normalized = String(status || "pending").toLowerCase().replace(/\s+/g, "-");
+  if (["new", "confirmed"].includes(normalized)) return "pending";
+  if (["packed", "in-transit"].includes(normalized)) return "processing";
+  if (normalized === "returned") return "returned";
+  return normalized;
+}
+
+function isPromotionOrder(order) {
+  return order.priceType === "promotion" || order.promotionApplied || getNumberFromValue(order.amount) === 0;
+}
+
+function getOrderBalance(order) {
+  return Math.max(getNumberFromValue(order.totalPayable) - getNumberFromValue(order.paidAmount), 0);
 }
 
 
@@ -1648,25 +1936,46 @@ function initWritableFormListeners() {
     getData: () => {
       const amount = getNumber("ord-amount");
       const deliveryCharge = getNumber("ord-delivery");
+      const paidAmount = getNumber("ord-paid");
+      const totalPayable = amount + deliveryCharge;
+      const balanceDue = Math.max(totalPayable - paidAmount, 0);
+      const advanceCredit = Math.max(paidAmount - totalPayable, 0);
       return {
         date: getValue("ord-date"),
         source: getValue("ord-source"),
         customer: getValue("ord-customer"),
+        customerName: getValue("ord-customer"),
         phone: getValue("ord-phone"),
+        gstNumber: getValue("ord-gst"),
+        shopName: getValue("ord-shop"),
+        landmark: getValue("ord-landmark"),
+        pincode: getValue("ord-pin"),
+        locationLink: getValue("ord-location"),
         product: getValue("ord-product"),
+        priceType: getValue("ord-price-type"),
         qty: getNumber("ord-qty"),
         amount,
         deliveryCharge,
-        totalPayable: amount + deliveryCharge,
+        expenseTotal: deliveryCharge,
+        totalPayable,
+        paidAmount,
+        balanceDue,
+        advanceCredit,
         paymentStatus: getValue("ord-pstatus"),
+        paymentMode: getValue("ord-payment-mode"),
         orderStatus: getValue("ord-ostatus"),
         address: getValue("ord-address"),
-        notes: getValue("ord-notes")
+        notes: getValue("ord-notes"),
+        items: [{ name: getValue("ord-product"), qty: getNumber("ord-qty"), priceType: getValue("ord-price-type"), amount }]
       };
     },
     populate: populateOrders,
     afterSave: async (data, meta) => {
-      await reconcileLedgerOnly(data, { ...meta, moduleName: "Order", amount: data.totalPayable, direction: "in", reference: data.customer });
+      await reconcileLedgerOnly(data, { ...meta, moduleName: "Order", amount: data.paidAmount, direction: "in", reference: data.customer });
+      if (data.advanceCredit > 0) {
+        showToast(`Extra payment saved as party advance credit: ${formatCurrency(data.advanceCredit)}`, "info");
+      }
+      closeOrderModal();
     }
   });
 
@@ -2340,19 +2649,29 @@ function populateSales(record) {
 }
 
 function populateOrders(record) {
+  populateOrderProductOptions(record.product);
   setValue("ord-date", record.date);
   setValue("ord-source", record.source);
   setValue("ord-customer", record.customer);
   setValue("ord-phone", record.phone);
+  setValue("ord-gst", record.gstNumber);
+  setValue("ord-shop", record.shopName);
+  setValue("ord-landmark", record.landmark);
+  setValue("ord-pin", record.pincode || record.pin);
+  setValue("ord-location", record.locationLink);
   setValue("ord-product", record.product);
+  setValue("ord-price-type", record.priceType || "with-gst");
   setValue("ord-qty", record.qty);
   setValue("ord-amount", record.amount);
   setValue("ord-delivery", record.deliveryCharge);
   setValue("ord-payable", record.totalPayable);
+  setValue("ord-paid", record.paidAmount);
+  setValue("ord-payment-mode", record.paymentMode);
   setValue("ord-pstatus", record.paymentStatus);
   setValue("ord-ostatus", record.orderStatus);
   setValue("ord-address", record.address);
   setValue("ord-notes", record.notes);
+  updateOrderTotals();
 }
 
 function populateDelivery(record) {

@@ -20,28 +20,79 @@
         <span class="sidebar-logo" data-company-name>Lakfa ERP</span>
         <button id="sidebar-close" class="menu-toggle" style="font-size: 1.5rem; display: none;">&times;</button>
       </div>
-      <nav class="sidebar-menu">
+      <nav class="sidebar-menu sidebar-accordion">
         <a href="#" class="sidebar-item active" data-section="dashboard"><span class="icon"><svg viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="9"></rect><rect x="14" y="3" width="7" height="5"></rect><rect x="14" y="12" width="7" height="9"></rect><rect x="3" y="16" width="7" height="5"></rect></svg></span> Dashboard</a>
-        <a href="#" class="sidebar-item" data-section="company"><span class="icon"><svg viewBox="0 0 24 24"><rect x="4" y="2" width="16" height="20" rx="2" ry="2"></rect><line x1="9" y1="22" x2="9" y2="16"></line><line x1="15" y1="22" x2="15" y2="16"></line><line x1="9" y1="16" x2="15" y2="16"></line><path d="M9 6h6M9 10h6M9 14h6"></path></svg></span> Company Profile</a>
-        <a href="#" class="sidebar-item" data-section="products"><span class="icon"><svg viewBox="0 0 24 24"><line x1="16.5" y1="9.4" x2="7.5" y2="4.21"></line><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path><polyline points="3.27 6.96 12 12.01 20.73 6.96"></polyline><line x1="12" y1="22.08" x2="12" y2="12"></line></svg></span> Products</a>
-        <a href="#" class="sidebar-item" data-section="customers"><span class="icon"><svg viewBox="0 0 24 24"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg></span> Customers</a>
-        <a href="#" class="sidebar-item" data-section="suppliers"><span class="icon"><svg viewBox="0 0 24 24"><rect x="2" y="7" width="20" height="14" rx="2" ry="2"></rect><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"></path></svg></span> Suppliers</a>
-        <a href="#" class="sidebar-item" data-section="purchase"><span class="icon"><svg viewBox="0 0 24 24"><circle cx="9" cy="21" r="1"></circle><circle cx="20" cy="21" r="1"></circle><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"></path></svg></span> Purchase</a>
-        <a href="#" class="sidebar-item" data-section="inventory"><span class="icon"><svg viewBox="0 0 24 24"><polyline points="21 8 21 21 3 21 3 8"></polyline><rect x="1" y="3" width="22" height="5"></rect><line x1="10" y1="12" x2="14" y2="12"></line></svg></span> Inventory / Stock</a>
-        <a href="#" class="sidebar-item" data-section="production"><span class="icon"><svg viewBox="0 0 24 24"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"></path></svg></span> Production</a>
-        <a href="#" class="sidebar-item" data-section="sales"><span class="icon"><svg viewBox="0 0 24 24"><path d="M6 3h12M6 8h12M14.5 8A5.5 5.5 0 0 0 9 13.5M9 13.5h9M9 13.5L16 21"></path></svg></span> Sales</a>
-        <a href="#" class="sidebar-item" data-section="orders"><span class="icon"><svg viewBox="0 0 24 24"><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"></path><rect x="8" y="2" width="8" height="4" rx="1" ry="1"></rect></svg></span> Orders</a>
-        <a href="#" class="sidebar-item" data-section="delivery"><span class="icon"><svg viewBox="0 0 24 24"><rect x="1" y="3" width="15" height="13"></rect><polygon points="16 8 20 8 23 11 23 16 16 16 16 8"></polygon><circle cx="5.5" cy="18.5" r="2.5"></circle><circle cx="18.5" cy="18.5" r="2.5"></circle></svg></span> Delivery / Courier</a>
-        <a href="#" class="sidebar-item" data-section="expenses"><span class="icon"><svg viewBox="0 0 24 24"><line x1="17" y1="7" x2="7" y2="17"></line><polyline points="17 17 7 17 7 7"></polyline></svg></span> Expenses</a>
-        <a href="#" class="sidebar-item" data-section="income"><span class="icon"><svg viewBox="0 0 24 24"><line x1="7" y1="17" x2="17" y2="7"></line><polyline points="7 7 17 7 17 17"></polyline></svg></span> Income</a>
-        <a href="#" class="sidebar-item" data-section="cashbook"><span class="icon"><svg viewBox="0 0 24 24"><path d="M21 12V7a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-3a2 2 0 0 0-2-2H3"></path></svg></span> Cash Book</a>
-        <a href="#" class="sidebar-item" data-section="bankbook"><span class="icon"><svg viewBox="0 0 24 24"><path d="M3 21h18M3 10h18M3 10l9-7 9 7M4 10v11M20 10v11M8 14v3M12 14v3M16 14v3"></path></svg></span> Bank Book</a>
-        <a href="#" class="sidebar-item" data-section="accounting"><span class="icon"><svg viewBox="0 0 24 24"><rect x="4" y="2" width="16" height="20" rx="2" ry="2"></rect><line x1="8" y1="6" x2="16" y2="6"></line><line x1="16" y1="10" x2="16" y2="18"></line><line x1="8" y1="10" x2="8" y2="10.01"></line><line x1="12" y1="10" x2="12" y2="10.01"></line><line x1="8" y1="14" x2="8" y2="14.01"></line><line x1="12" y1="14" x2="12" y2="14.01"></line><line x1="8" y1="18" x2="8" y2="18.01"></line><line x1="12" y1="18" x2="12" y2="18.01"></line></svg></span> Accounting Summary</a>
-        <a href="#" class="sidebar-item" data-section="investors"><span class="icon"><svg viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M23 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg></span> Investors</a>
-        <a href="#" class="sidebar-item" data-section="investment-sharing"><span class="icon"><svg viewBox="0 0 24 24"><line x1="19" y1="5" x2="5" y2="19"></line><circle cx="6.5" cy="6.5" r="2.5"></circle><circle cx="17.5" cy="17.5" r="2.5"></circle></svg></span> Profit Sharing</a>
-        <a href="#" class="sidebar-item" data-section="reports"><span class="icon"><svg viewBox="0 0 24 24"><line x1="18" y1="20" x2="18" y2="10"></line><line x1="12" y1="20" x2="12" y2="4"></line><line x1="6" y1="20" x2="6" y2="14"></line></svg></span> Reports</a>
-        <a href="#" class="sidebar-item" data-section="gstreports"><span class="icon"><svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg></span> GST Reports</a>
-        <a href="#" class="sidebar-item" data-section="settings"><span class="icon"><svg viewBox="0 0 24 24"><line x1="4" y1="21" x2="4" y2="14"></line><line x1="4" y1="10" x2="4" y2="3"></line><line x1="12" y1="21" x2="12" y2="12"></line><line x1="12" y1="8" x2="12" y2="3"></line><line x1="20" y1="21" x2="20" y2="16"></line><line x1="20" y1="12" x2="20" y2="3"></line><line x1="2" y1="14" x2="6" y2="14"></line><line x1="10" y1="8" x2="14" y2="8"></line><line x1="18" y1="16" x2="22" y2="16"></line></svg></span> Settings</a>
+
+        <div class="sidebar-group expanded">
+          <button class="sidebar-group-toggle" type="button"><span>Order Management</span><span class="chevron">⌄</span></button>
+          <div class="sidebar-submenu">
+            <a href="#" class="sidebar-item" data-section="orders" data-order-view="all"><span class="icon">▣</span> Orders</a>
+            <a href="#" class="sidebar-item" data-section="orders" data-order-view="payment-due"><span class="icon">₹</span> Payment Due</a>
+            <a href="#" class="sidebar-item" data-section="orders" data-order-view="promotions"><span class="icon">%</span> Promotions</a>
+            <a href="#" class="sidebar-item" data-section="orders" data-order-view="returns"><span class="icon">↩</span> Return</a>
+            <a href="#" class="sidebar-item" data-section="orders" data-order-view="cancelled"><span class="icon">⊗</span> Order Cancelled</a>
+            <a href="#" class="sidebar-item" data-section="orders" data-order-view="recycle-bin"><span class="icon">🗑</span> Recycle Bin</a>
+          </div>
+        </div>
+
+        <div class="sidebar-group">
+          <button class="sidebar-group-toggle" type="button"><span>Parties</span><span class="chevron">⌄</span></button>
+          <div class="sidebar-submenu">
+            <a href="#" class="sidebar-item" data-section="customers"><span class="icon">👤</span> Customers</a>
+            <a href="#" class="sidebar-item" data-section="suppliers"><span class="icon">🏪</span> Suppliers</a>
+            <a href="#" class="sidebar-item" data-section="investors"><span class="icon">👥</span> Investors</a>
+          </div>
+        </div>
+
+        <div class="sidebar-group">
+          <button class="sidebar-group-toggle" type="button"><span>Inventory & Products</span><span class="chevron">⌄</span></button>
+          <div class="sidebar-submenu">
+            <a href="#" class="sidebar-item" data-section="products"><span class="icon">□</span> Products</a>
+            <a href="#" class="sidebar-item" data-section="inventory"><span class="icon">▤</span> Inventory / Stock</a>
+            <a href="#" class="sidebar-item" data-section="production"><span class="icon">⚙</span> Production</a>
+          </div>
+        </div>
+
+        <div class="sidebar-group">
+          <button class="sidebar-group-toggle" type="button"><span>Sale</span><span class="chevron">⌄</span></button>
+          <div class="sidebar-submenu">
+            <a href="#" class="sidebar-item" data-section="sales"><span class="icon">₹</span> Sale Invoices</a>
+            <a href="#" class="sidebar-item" data-section="sales"><span class="icon">＋</span> Estimate / Quotation</a>
+            <a href="#" class="sidebar-item" data-section="sales"><span class="icon">＋</span> Proforma Invoice</a>
+            <a href="#" class="sidebar-item" data-section="income"><span class="icon">＋</span> Payment-In / Other Income</a>
+            <a href="#" class="sidebar-item" data-section="orders" data-order-view="all"><span class="icon">＋</span> Sale Order</a>
+            <a href="#" class="sidebar-item" data-section="delivery"><span class="icon">＋</span> Delivery Challan</a>
+          </div>
+        </div>
+
+        <div class="sidebar-group">
+          <button class="sidebar-group-toggle" type="button"><span>Purchase & Expense</span><span class="chevron">⌄</span></button>
+          <div class="sidebar-submenu">
+            <a href="#" class="sidebar-item" data-section="purchase"><span class="icon">＋</span> Purchase Bills</a>
+            <a href="#" class="sidebar-item" data-section="expenses"><span class="icon">＋</span> Payment-Out / Expenses</a>
+          </div>
+        </div>
+
+        <div class="sidebar-group">
+          <button class="sidebar-group-toggle" type="button"><span>Cash, Bank & Assets</span><span class="chevron">⌄</span></button>
+          <div class="sidebar-submenu">
+            <a href="#" class="sidebar-item" data-section="bankbook"><span class="icon">🏦</span> Bank Accounts</a>
+            <a href="#" class="sidebar-item" data-section="cashbook"><span class="icon">💵</span> Cash In Hand</a>
+          </div>
+        </div>
+
+        <div class="sidebar-group">
+          <button class="sidebar-group-toggle" type="button"><span>Accounting</span><span class="chevron">⌄</span></button>
+          <div class="sidebar-submenu">
+            <a href="#" class="sidebar-item" data-section="accounting"><span class="icon">≡</span> Accounting Summary</a>
+            <a href="#" class="sidebar-item" data-section="reports"><span class="icon">▥</span> Reports</a>
+            <a href="#" class="sidebar-item" data-section="gstreports"><span class="icon">％</span> GST Reports</a>
+          </div>
+        </div>
+
+        <a href="#" class="sidebar-item" data-section="investment-sharing"><span class="icon">%</span> Profit Sharing</a>
+        <a href="#" class="sidebar-item" data-section="company"><span class="icon">🏢</span> Company Profile</a>
+        <a href="#" class="sidebar-item" data-section="settings"><span class="icon">⚙</span> Settings</a>
         <hr style="margin: 0.5rem 0; border: 0; border-top: 1px solid var(--border);">
         <a href="#" id="logout-btn" class="sidebar-item" style="color: var(--danger);"><span class="icon" style="color: var(--danger);"><svg viewBox="0 0 24 24"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path><polyline points="16 17 21 12 16 7"></polyline><line x1="21" y1="12" x2="9" y2="12"></line></svg></span> Logout</a>
       </nav>
@@ -522,59 +573,98 @@
 
         <!-- ================= ORDERS MODULE ================= -->
         <section id="section-orders" class="app-section">
-          <div class="section-header"><h2 class="section-title">Order Processing Desk</h2></div>
-          <div class="module-layout">
-            <div class="card">
-              <div class="card-title">Book New Order</div>
+          <div class="section-header order-page-header">
+            <h2 class="section-title">Order Management</h2>
+            <button type="button" id="open-order-modal-btn" class="btn-primary">+ Add New Order</button>
+          </div>
+
+          <div class="order-status-tabs" role="tablist" aria-label="Order status filters">
+            <button type="button" class="order-tab active" data-order-tab="pending">Pending</button>
+            <button type="button" class="order-tab" data-order-tab="processing">Processing</button>
+            <button type="button" class="order-tab" data-order-tab="shipped">Shipped</button>
+            <button type="button" class="order-tab" data-order-tab="delivered">Delivered</button>
+            <button type="button" class="order-tab" data-order-tab="payment-due">Payment Due</button>
+            <button type="button" class="order-tab" data-order-tab="all">All Orders</button>
+            <button type="button" class="order-tab" data-order-tab="promotions">Promotions</button>
+          </div>
+
+          <div id="order-payment-due-filters" class="order-due-filters" hidden>
+            <strong>Filter Due by Status</strong>
+            <button type="button" class="due-filter active" data-due-filter="all">All Due</button>
+            <button type="button" class="due-filter" data-due-filter="pending">Pending</button>
+            <button type="button" class="due-filter" data-due-filter="processing">Processing</button>
+            <button type="button" class="due-filter" data-due-filter="shipped">Shipped</button>
+            <button type="button" class="due-filter" data-due-filter="delivered">Delivered</button>
+          </div>
+
+          <div class="order-filter-bar">
+            <div class="form-group"><label>Search</label><input type="search" id="orders-search" class="form-control" placeholder="Name or Phone..."></div>
+            <div class="form-group"><label>From Date</label><input type="date" id="orders-from-date" class="form-control"></div>
+            <div class="form-group"><label>To Date</label><input type="date" id="orders-to-date" class="form-control"></div>
+          </div>
+
+          <div class="table-responsive order-table-wrap">
+            <table class="orders-screen-table">
+              <thead>
+                <tr>
+                  <th><input type="checkbox" aria-label="Select all orders"></th>
+                  <th>Date</th><th>Contact</th><th>Items</th><th>Status</th><th>Expense</th><th>Payment</th><th>Action</th>
+                </tr>
+              </thead>
+              <tbody id="orders-table-body"></tbody>
+            </table>
+          </div>
+
+          <div id="order-modal" class="modal-overlay" hidden>
+            <div class="modal-card order-modal-card">
+              <div class="modal-header">
+                <h3>Add New Order</h3>
+                <button type="button" id="close-order-modal-btn" class="icon-button" aria-label="Close order form">×</button>
+              </div>
               <form id="orders-form">
                 <div class="form-grid-2">
-                  <div class="form-group"><label>Order Date</label><input type="date" id="ord-date" class="form-control" required></div>
-                  <div class="form-group">
-                    <label>Order Source</label>
-                    <select id="ord-source" class="form-control">
-                      <option>WhatsApp</option><option>Website</option><option>Instagram</option><option>Phone</option><option>Direct</option>
-                    </select>
-                  </div>
+                  <div class="form-group"><label>Date</label><input type="date" id="ord-date" class="form-control" required></div>
+                  <div class="form-group"><label>Status</label><select id="ord-ostatus" class="form-control"><option>Pending</option><option>Processing</option><option>Shipped</option><option>Delivered</option><option>Cancelled</option><option>Returned</option></select></div>
+                </div>
+                <hr class="modal-divider">
+                <h4>Customer Details</h4>
+                <div class="form-grid-2">
+                  <div class="form-group"><label>Phone</label><input type="tel" id="ord-phone" class="form-control" required placeholder="Type phone to find repeat customers"></div>
+                  <div class="form-group"><label>Name</label><input type="text" id="ord-customer" class="form-control" required></div>
+                  <div class="form-group"><label>GST Number (Optional)</label><input type="text" id="ord-gst" class="form-control"></div>
+                  <div class="form-group"><label>Shop Name (Optional)</label><input type="text" id="ord-shop" class="form-control"></div>
+                  <div class="form-group"><label>Landmark (Optional)</label><input type="text" id="ord-landmark" class="form-control"></div>
+                  <div class="form-group"><label>Pincode</label><input type="text" id="ord-pin" class="form-control"></div>
+                </div>
+                <div class="form-group"><label>Full Address</label><textarea id="ord-address" class="form-control" rows="2" required></textarea></div>
+                <div class="form-group"><label>Location Link (Optional)</label><input type="url" id="ord-location" class="form-control"></div>
+                <hr class="modal-divider">
+                <h4>Order Items</h4>
+                <div class="order-item-row">
+                  <div class="form-group"><label>Product</label><select id="ord-product" class="form-control" required></select></div>
+                  <div class="form-group"><label>Price Type</label><select id="ord-price-type" class="form-control"><option value="with-gst">Including GST</option><option value="without-gst">Without GST</option><option value="promotion">Promotion / Free</option><option value="custom">Custom Amount</option></select></div>
+                  <div class="form-group"><label>Qty</label><input type="number" id="ord-qty" class="form-control" min="1" value="1" required></div>
+                  <div class="form-group"><label>Amount ₹</label><input type="number" id="ord-amount" class="form-control" step="0.01" required></div>
                 </div>
                 <div class="form-grid-2">
-                  <div class="form-group"><label>Customer Name</label><input type="text" id="ord-customer" class="form-control" required></div>
-                  <div class="form-group"><label>Phone Number</label><input type="tel" id="ord-phone" class="form-control" required></div>
+                  <div class="form-group"><label>Delivery / Expense ₹</label><input type="number" id="ord-delivery" class="form-control" step="0.01" value="0"></div>
+                  <div class="form-group"><label>Total Payable ₹</label><input type="number" id="ord-payable" class="form-control" readonly></div>
                 </div>
-                <div class="form-group"><label>Product Requested</label><input type="text" id="ord-product" class="form-control" required></div>
-                <div class="form-grid-3" style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 0.5rem;">
-                  <div class="form-group"><label>Quantity</label><input type="number" id="ord-qty" class="form-control" required></div>
-                  <div class="form-group"><label>Order Amount (₹)</label><input type="number" id="ord-amount" class="form-control" step="0.01" required></div>
-                  <div class="form-group"><label>Delivery Charge (₹)</label><input type="number" id="ord-delivery" class="form-control" step="0.01" value="0" required></div>
+                <hr class="modal-divider">
+                <h4>Payment Details</h4>
+                <div class="form-grid-3">
+                  <div class="form-group"><label>First Payment ₹</label><input type="number" id="ord-paid" class="form-control" step="0.01" value="0"></div>
+                  <div class="form-group"><label>Payment Mode</label><select id="ord-payment-mode" class="form-control"><option>Cash</option><option>UPI</option><option>Bank</option><option>Card</option></select></div>
+                  <div class="form-group"><label>Payment Status</label><select id="ord-pstatus" class="form-control"><option>Pending</option><option>Partial</option><option>Paid</option><option>Advance Credit</option></select></div>
                 </div>
-                <div class="form-group"><label>Total Payable (₹ - Auto)</label><input type="number" id="ord-payable" class="form-control" readonly style="background-color: #f1f5f9;"></div>
-                <div class="form-grid-2">
-                  <div class="form-group">
-                    <label>Payment Status</label>
-                    <select id="ord-pstatus" class="form-control">
-                      <option>Pending</option><option>Paid</option><option>Partial</option>
-                    </select>
-                  </div>
-                  <div class="form-group">
-                    <label>Order Status</label>
-                    <select id="ord-ostatus" class="form-control">
-                      <option>New</option><option>Pending</option><option>Confirmed</option><option>Packed</option><option>Shipped</option><option>Delivered</option><option>Cancelled</option><option>Returned</option>
-                    </select>
-                  </div>
-                </div>
-                <div class="form-group"><label>Full Delivery Address</label><input type="text" id="ord-address" class="form-control" required></div>
+                <div id="order-credit-note" class="alert alert-info" hidden></div>
+                <input type="hidden" id="ord-source" value="Direct">
                 <div class="form-group"><label>Notes</label><input type="text" id="ord-notes" class="form-control"></div>
-                <button type="submit" id="orders-submit-btn" class="btn-primary submit-btn" style="width: 100%;">Save Record</button>
+                <div class="modal-footer">
+                  <button type="button" id="cancel-order-modal-btn" class="btn-secondary">Cancel</button>
+                  <button type="submit" id="orders-submit-btn" class="btn-primary submit-btn">Save Order</button>
+                </div>
               </form>
-            </div>
-            <div class="table-responsive">
-              <table>
-                <thead>
-                  <tr>
-                    <th>Date / Source</th><th>Customer Info</th><th>Product</th><th>Amount Payable</th><th>Payment</th><th>Order Status</th><th>Actions</th>
-                  </tr>
-                </thead>
-                <tbody id="orders-table-body"></tbody>
-              </table>
             </div>
           </div>
         </section>
