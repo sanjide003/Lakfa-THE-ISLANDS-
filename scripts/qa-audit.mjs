@@ -8,6 +8,15 @@ const fail = (message) => {
 };
 
 const firebaseDb = read('lakfa-erp/js/firebase-db.js');
+
+const androidActivity = read('app/src/main/java/com/lakfa/erp/MainActivity.kt');
+['ERP_ASSET_URL', 'onBackPressedDispatcher', 'onShowFileChooser', 'domStorageEnabled', 'allowUniversalAccessFromFileURLs'].forEach((needle) => {
+  if (!androidActivity.includes(needle)) fail(`Android WebView wrapper is missing ${needle}`);
+});
+const androidBuild = read('app/build.gradle.kts');
+['namespace = "com.lakfa.erp"', 'applicationId = "com.lakfa.erp"', 'versionCode = 8', 'versionName = "1.0.8"', 'tasks.register<Copy>("copyWebAssets")'].forEach((needle) => {
+  if (!androidBuild.includes(needle)) fail(`Android Gradle packaging is missing ${needle}`);
+});
 const rules = read('docs/firestore.rules');
 
 const managerController = read('lakfa-erp/js/manager.js');

@@ -152,7 +152,18 @@ Validation checks:
 | Investor read-only report | Login as investor. | Investor sees read-only report summary and no export/write actions. | ☐ |
 | Backup runbook | Review `docs/FIRESTORE_BACKUP_RESTORE.md`. | Backup/restore checklist and seed/import guidance are present before production import. | ☐ |
 
-## 10. Vercel PWA cache verification
+## 10. Android packaging verification
+
+| Check | Steps | Expected result | Status |
+|---|---|---|---|
+| Gradle package config | Review `app/build.gradle.kts`. | `applicationId` is `com.lakfa.erp`, version is `1.0.8`, and web assets copy before build. | ☐ |
+| WebView Firebase loading | Install Android build and login. | Bundled `lakfa-erp/index.html` loads Firebase Auth/Firestore successfully. | ☐ |
+| Back button behavior | Navigate between app pages/tabs, then press Android back. | WebView goes back before closing the app. | ☐ |
+| File chooser | Admin → Company Profile → upload logo/signature. | Android image picker opens and Firestore `logoDataUrl` / `signatureDataUrl` save correctly. | ☐ |
+| Offline shell | Disable network after first app open. | Bundled shell still opens; Firebase data shows network/auth errors rather than local fallback data. | ☐ |
+| Release checklist | Review `docs/ANDROID_PACKAGING.md`. | App icon/splash/versioning/release checklist are documented before release. | ☐ |
+
+## 11. Vercel PWA cache verification
 
 - [ ] `/` opens the login page.
 - [ ] `/lakfa-erp/service-worker.js` returns `Cache-Control: public, max-age=0, must-revalidate`.
@@ -161,7 +172,7 @@ Validation checks:
 - [ ] Hard refresh loads latest company profile image behavior.
 - [ ] PWA install prompt works in Chrome or Edge.
 
-## 11. Bug report template
+## 12. Bug report template
 
 | Field | Value |
 | --- | --- |
