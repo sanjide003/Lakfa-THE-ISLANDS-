@@ -80,8 +80,19 @@ The system uses Firestore to verify what role each authenticated UID is assigned
 
 ---
 
-## Step 5: Test Live Login
-Once authentication accounts, Firestore role records, and Firestore rules are created, refresh your Lakfa ERP login page. The app will connect directly to Google Firebase and direct your staff to their respective dashboards based on their role metadata.
+## Step 5: Publish Firebase Storage Rules
+1. In the Firebase left-hand sidebar, select **"Build"** → **"Storage"**.
+2. Open the **"Rules"** tab.
+3. Copy the contents of `docs/storage.rules`.
+4. Paste the rules into the Firebase Console rules editor.
+5. Click **"Publish"**.
+
+Company logos and signature logos are uploaded under `company/profile/` and are writable only by active admin users.
+
+---
+
+## Step 6: Test Live Login
+Once authentication accounts, Firestore role records, Firestore rules, and Storage rules are created, refresh your Lakfa ERP login page. The app will connect directly to Google Firebase and direct your staff to their respective dashboards based on their role metadata.
 
 ### Production Verification Checklist
 - Demo Mode banner should not appear on the login screen.

@@ -2,6 +2,7 @@
 import { logoutUser } from "./role-guard.js";
 import { formatCurrency, formatDate, showToast } from "./utils.js";
 import { COLLECTIONS, getAllCollections } from "./firebase-db.js";
+import { initCompanyProfileForm } from "./company-profile.js";
 
 // Keys mapped to Firestore collections
 const KEYS = {
@@ -53,6 +54,7 @@ function getStoredRecords(key) {
 document.addEventListener("DOMContentLoaded", async () => {
   // 1. Keep manager workspace read-only until Firestore write flows are implemented
   setFormsReadOnly();
+  await initCompanyProfileForm();
 
   // 2. Load Firestore data for all dashboard and table renderers
   await loadFirestoreData();
@@ -85,6 +87,10 @@ async function loadFirestoreData() {
 
 function setFormsReadOnly() {
   document.querySelectorAll("form").forEach((form) => {
+    if (form.dataset.firestoreWrite === "companyProfile") {
+      return;
+    }
+
     form.addEventListener("submit", (event) => {
       event.preventDefault();
       showToast(READ_ONLY_MESSAGE, "info");

@@ -1,6 +1,6 @@
 /* Lakfa ERP Firestore Data Layer */
 import { db } from "./firebase-config.js";
-import { collection, getDocs, query } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+import { collection, doc, getDoc, getDocs, query, serverTimestamp, setDoc } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
 export const COLLECTIONS = {
   products: "products",
@@ -37,4 +37,24 @@ export async function getAllCollections(collectionMap) {
   );
 
   return Object.fromEntries(entries);
+}
+
+export async function getDocument(collectionName, documentId) {
+  const snapshot = await getDoc(doc(db, collectionName, documentId));
+  if (!snapshot.exists()) return null;
+  return {
+    id: snapshot.id,
+    ...snapshot.data()
+  };
+}
+
+export async function saveDocument(collectionName, documentId, payload) {
+  await setDoc(
+    doc(db, collectionName, documentId),
+    {
+      ...payload,
+      updatedAt: serverTimestamp()
+    },
+    { merge: true }
+  );
 }

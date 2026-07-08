@@ -6,6 +6,8 @@ const ASSETS_TO_CACHE = [
   "investor.html",
   "css/style.css",
   "js/firebase-config.js",
+  "js/firebase-db.js",
+  "js/company-profile.js",
   "js/auth.js",
   "js/role-guard.js",
   "js/manager.js",

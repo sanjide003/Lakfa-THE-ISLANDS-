@@ -17,7 +17,7 @@
     <!-- Sidebar Navigation -->
     <aside id="sidebar" class="sidebar">
       <div class="sidebar-header">
-        <span class="sidebar-logo">Lakfa ERP</span>
+        <span class="sidebar-logo" data-company-name>Lakfa ERP</span>
         <button id="sidebar-close" class="menu-toggle" style="font-size: 1.5rem; display: none;">&times;</button>
       </div>
       <nav class="sidebar-menu">
@@ -70,7 +70,7 @@
         <!-- ================= DASHBOARD MODULE ================= -->
         <section id="section-dashboard" class="app-section active">
           <div class="section-header">
-            <h1 class="section-title">Lakfa Foods Performance Dashboard</h1>
+            <h1 class="section-title"><span data-company-name>Lakfa ERP</span> Performance Dashboard</h1>
             <span style="font-size: 0.875rem; color: var(--text-muted);">Real-time Operations Ledger</span>
           </div>
           
@@ -152,21 +152,51 @@
 
         <!-- ================= COMPANY PROFILE MODULE ================= -->
         <section id="section-company" class="app-section">
-          <div class="card" style="max-width: 600px; margin: 0 auto;">
-            <div class="card-title">Company Profile Details</div>
-            <div style="text-align: center; margin-bottom: 1.5rem;">
-              <h2 style="color: var(--primary);">Lakfa Foods Private Limited</h2>
-              <p style="color: var(--text-muted); font-size: 0.875rem;">Premium Spices & Flour Manufacture</p>
-            </div>
-            <table class="table" style="font-size: 0.875rem; width: 100%;">
-              <tr><td style="font-weight: 600; width: 40%;">CIN / Registration</td><td>U15490KL2026PTC099887</td></tr>
-              <tr><td style="font-weight: 600;">GSTIN No.</td><td>32AAACL8901D1Z4</td></tr>
-              <tr><td style="font-weight: 600;">Registered Office</td><td>12/4B, Industrial Development Area, Kinfra Park, Malappuram, Kerala - 676505</td></tr>
-              <tr><td style="font-weight: 600;">Contact Phone</td><td>+91 94471 00200</td></tr>
-              <tr><td style="font-weight: 600;">Official Email</td><td>operations@lakfafoods.com</td></tr>
-              <tr><td style="font-weight: 600;">Authorized Signatory</td><td>Managing Director / CEO</td></tr>
-              <tr><td style="font-weight: 600;">Business Categories</td><td>Packaged Goods, Flour Milling, Spice Blending</td></tr>
-            </table>
+          <div class="card" style="max-width: 900px; margin: 0 auto;">
+            <div class="card-title">Company Profile & Branding</div>
+            <form id="company-profile-form" data-firestore-write="companyProfile">
+              <div style="display: flex; align-items: center; gap: 1rem; margin-bottom: 1.5rem;">
+                <img id="company-logo-preview" data-company-logo hidden alt="Company logo preview" style="width: 72px; height: 72px; object-fit: contain; border: 1px solid var(--border); border-radius: 12px; padding: 0.35rem; background: #fff;">
+                <div>
+                  <h2 data-company-name style="color: var(--primary); margin: 0;">Lakfa ERP</h2>
+                  <p style="color: var(--text-muted); font-size: 0.875rem; margin-top: 0.25rem;">Saved in Firebase: settings/companyProfile</p>
+                </div>
+              </div>
+
+              <div class="form-grid-2">
+                <div class="form-group"><label>Company Name</label><input name="companyName" class="form-control" required placeholder="Company legal/trade name"></div>
+                <div class="form-group"><label>GST Number</label><input name="gst" class="form-control" placeholder="GSTIN"></div>
+              </div>
+              <div class="form-group"><label>Address</label><textarea name="address" class="form-control" rows="3" placeholder="Registered/business address"></textarea></div>
+              <div class="form-grid-3" style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 0.75rem;">
+                <div class="form-group"><label>State</label><input name="state" class="form-control" placeholder="State"></div>
+                <div class="form-group"><label>Pincode</label><input name="pincode" class="form-control" placeholder="PIN code"></div>
+                <div class="form-group"><label>Business Type</label><input name="businessType" class="form-control" placeholder="Manufacturer, Trader, etc."></div>
+              </div>
+              <div class="form-grid-2">
+                <div class="form-group"><label>Business Category</label><input name="businessCategory" class="form-control" placeholder="Food, spices, retail, etc."></div>
+                <div class="form-group"><label>Website Link</label><input name="website" type="url" class="form-control" placeholder="https://example.com"></div>
+              </div>
+              <div class="form-grid-2">
+                <div class="form-group"><label>Phone Number</label><input name="phone" class="form-control" placeholder="Company phone"></div>
+                <div class="form-group"><label>Email</label><input name="email" type="email" class="form-control" placeholder="company@example.com"></div>
+              </div>
+              <div class="form-group"><label>Social Media Links</label><textarea name="socialLinks" class="form-control" rows="2" placeholder="Instagram, Facebook, YouTube, LinkedIn links"></textarea></div>
+              <div class="form-grid-2">
+                <div class="form-group">
+                  <label>Company Logo</label>
+                  <input id="company-logo-file" name="logoFile" type="file" class="form-control" accept="image/*">
+                  <input name="logoUrl" type="url" class="form-control" placeholder="Logo URL from Firebase Storage" style="margin-top: 0.5rem;">
+                </div>
+                <div class="form-group">
+                  <label>Signature Logo</label>
+                  <input id="company-signature-logo-file" name="signatureLogoFile" type="file" class="form-control" accept="image/*">
+                  <input name="signatureLogoUrl" type="url" class="form-control" placeholder="Signature URL from Firebase Storage" style="margin-top: 0.5rem;">
+                  <img id="company-signature-logo-preview" hidden alt="Signature preview" style="max-height: 72px; max-width: 180px; object-fit: contain; margin-top: 0.5rem; border: 1px solid var(--border); border-radius: 8px; padding: 0.35rem; background: #fff;">
+                </div>
+              </div>
+              <button type="submit" class="btn-primary" style="width: 100%; margin-top: 1rem;">Save Company Profile to Firebase</button>
+            </form>
           </div>
         </section>
 
@@ -954,33 +984,19 @@
           <div class="section-header">
             <h2 class="section-title">System Configurations</h2>
           </div>
-          <div class="card" style="max-width: 600px; margin: 0 auto;">
-            <div class="card-title">Settings Control Desk</div>
-            <form>
-              <div class="form-group">
-                <label>Venture Base Currency</label>
-                <select class="form-control"><option>Indian Rupee (₹)</option><option>US Dollar ($)</option></select>
-              </div>
-              <div class="form-group">
-                <label>Fulfillment Courier Mode</label>
-                <select class="form-control"><option>DTDC Integrated</option><option>Manual Courier Partners</option></select>
-              </div>
-              <div class="form-group">
-                <label>Company Address on Invoices</label>
-                <textarea class="form-control" rows="2">Lakfa Foods, Malappuram, Kerala</textarea>
-              </div>
-              <div class="form-group">
-                <label>Notification Channels</label>
-                <div style="display: flex; gap: 1rem; font-size: 0.875rem;">
-                  <label><input type="checkbox" checked> WhatsApp dispatch notifications</label>
-                  <label><input type="checkbox" checked> Investor share emails</label>
-                </div>
-              </div>
-              <button class="btn-primary" style="width: 100%; margin-top: 1rem;">Apply Configurations</button>
-            </form>
+          <div class="card" style="max-width: 700px; margin: 0 auto;">
+            <div class="card-title">Firebase-backed Company Settings</div>
+            <p style="font-size: 0.875rem; color: var(--text-muted); line-height: 1.6;">
+              Company identity, invoice address, contact details, website, social links, logo, and signature logo are saved in
+              <code>settings/companyProfile</code>. Use the Company Profile module to edit these settings.
+            </p>
+            <table class="table" style="font-size: 0.875rem; width: 100%; margin-top: 1rem;">
+              <tr><td style="font-weight: 600; width: 35%;">Company</td><td data-company-name>Lakfa ERP</td></tr>
+              <tr><td style="font-weight: 600;">Email</td><td data-company-email></td></tr>
+              <tr><td style="font-weight: 600;">Phone</td><td data-company-phone></td></tr>
+            </table>
           </div>
         </section>
-
       </div>
     </main>
   </div>
@@ -995,6 +1011,8 @@
   <script type="module" src="js/firebase-config.js"></script>
   <script type="module" src="js/role-guard.js"></script>
   <script type="module" src="js/utils.js"></script>
+  <script type="module" src="js/firebase-db.js"></script>
+  <script type="module" src="js/company-profile.js"></script>
   <script type="module" src="js/manager.js"></script>
 </body>
 </html>

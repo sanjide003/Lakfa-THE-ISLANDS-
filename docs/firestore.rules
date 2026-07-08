@@ -30,6 +30,11 @@ service cloud.firestore {
       allow create, update, delete: if isAdmin();
     }
 
+    match /settings/{settingId} {
+      allow read: if isAdmin() || isInvestor();
+      allow write: if isAdmin();
+    }
+
     // Admins can fully manage operational ERP data.
     // Investors can read reports/ledger data only; client UI must remain read-only.
     match /{document=**} {

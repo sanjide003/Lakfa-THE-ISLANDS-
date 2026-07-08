@@ -97,7 +97,7 @@ service cloud.firestore {
 ---
 
 ## ⚡ Firebase-only Data Mode
-Lakfa ERP no longer ships demo credentials, sample records, or browser-local business storage. Dashboards and ledgers render records from Firebase only. If a Firestore collection is empty, the related module shows an empty state until an admin creates records in Firebase.
+Lakfa ERP no longer ships demo credentials, sample records, or browser-local business storage. Dashboards, ledgers, company profile, logo, and signature branding render records/files from Firebase only. If a Firestore collection is empty, the related module shows an empty state until an admin creates records in Firebase.
 
 ---
 
@@ -120,6 +120,6 @@ Deploying this project to Vercel takes less than a minute and requires no comman
 ---
 
 ## 🔮 Future Roadmap (Phase 2 Development)
-*   **Firestore Write Workflows:** Enable admin create/update/delete forms after the Firebase read-only data layer is verified.
+*   **Firestore Write Workflows:** Enable the remaining admin create/update/delete forms after the company profile write flow is verified.
 *   **Invoicing & GST Forms:** Automatically generate professional PDFs and compile GSTR-1 summaries.
 *   **WhatsApp CRM:** Trigger automated dispatch alerts, delivery trackers, and confirmation messages directly to customer phone numbers.
