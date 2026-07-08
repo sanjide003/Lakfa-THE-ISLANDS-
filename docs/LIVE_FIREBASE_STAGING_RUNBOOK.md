@@ -172,7 +172,14 @@ Validation checks:
 - [ ] Hard refresh loads latest company profile image behavior.
 - [ ] PWA install prompt works in Chrome or Edge.
 
-## 12. Bug report template
+## 12. Final production release hardening verification
+
+| Check | Steps | Expected result | Status |
+|---|---|---|---|
+| Release hardening guide | Review `docs/PRODUCTION_RELEASE_HARDENING.md`. | Vercel, Firebase rules, Android release, QA result template, known limitations, and handover guide are complete. | ☐ |
+| Final smoke matrix | Execute the smoke-test matrix in the hardening guide. | Admin and investor flows pass with Firestore-backed production data only. | ☐ |
+
+## 13. Bug report template
 
 | Field | Value |
 | --- | --- |

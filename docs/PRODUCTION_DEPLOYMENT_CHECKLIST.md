@@ -56,3 +56,7 @@ Use this checklist before publishing the Firebase-backed PWA to Vercel.
 - Review `docs/PRODUCTION_QA_AUDIT.md` for repository-level audit findings and remaining product stages.
 
 - Use `docs/LIVE_FIREBASE_STAGING_QA.md` as the detailed live staging execution matrix.
+
+## Final release hardening
+
+Before production handover, complete `docs/PRODUCTION_RELEASE_HARDENING.md` and attach the filled staging QA result template to the release record.

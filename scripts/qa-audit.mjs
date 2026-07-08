@@ -9,6 +9,11 @@ const fail = (message) => {
 
 const firebaseDb = read('lakfa-erp/js/firebase-db.js');
 
+const releaseHardening = read('docs/PRODUCTION_RELEASE_HARDENING.md');
+['Vercel PWA deployment checklist', 'Firebase rules publish checklist', 'Android release checklist', 'Staging QA result template', 'Final smoke-test matrix', 'Known limitations', 'Operator handover guide'].forEach((needle) => {
+  if (!releaseHardening.includes(needle)) fail(`Production release hardening guide is missing ${needle}`);
+});
+
 const androidActivity = read('app/src/main/java/com/lakfa/erp/MainActivity.kt');
 ['ERP_ASSET_URL', 'onBackPressedDispatcher', 'onShowFileChooser', 'domStorageEnabled', 'allowUniversalAccessFromFileURLs'].forEach((needle) => {
   if (!androidActivity.includes(needle)) fail(`Android WebView wrapper is missing ${needle}`);
