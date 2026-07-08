@@ -74,7 +74,7 @@ The system uses Firestore to verify what role each authenticated UID is assigned
 ## Step 4: Publish Firestore Security Rules
 1. In the Firebase left-hand sidebar, select **"Build"** → **"Firestore Database"**.
 2. Open the **"Rules"** tab.
-3. Copy the contents of `lakfa-erp/firestore.rules`.
+3. Copy the contents of `docs/firestore.rules`.
 4. Paste the rules into the Firebase Console rules editor.
 5. Click **"Publish"**.
 

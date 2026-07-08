@@ -4,6 +4,8 @@ import { onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/
 import { doc, getDoc } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 import { showToast } from "./utils.js";
 
+const getLoginUrl = () => new URL("../../index.html", import.meta.url).href;
+
 // Helper to determine if Firebase config is still using the default placeholder
 export function isDemoMode() {
   return !firebaseConfig || firebaseConfig.apiKey.startsWith("YOUR_");
@@ -20,14 +22,14 @@ export function protectPage(requiredRole) {
     const demoUser = sessionStorage.getItem("lakfa_demo_user");
     if (!demoUser) {
       console.warn("No active session. Redirecting to index.html");
-      window.location.href = "index.html";
+      window.location.href = getLoginUrl();
       return;
     }
     try {
       const userObj = JSON.parse(demoUser);
       if (userObj.role !== requiredRole || userObj.status !== "active") {
         console.error("Unauthorized access attempt. Invalid role or inactive account.");
-        window.location.href = "index.html";
+        window.location.href = getLoginUrl();
         return;
       }
       // Populate user info in Header
@@ -35,7 +37,7 @@ export function protectPage(requiredRole) {
         updateUIHeader(userObj.name, userObj.email, userObj.role);
       });
     } catch (e) {
-      window.location.href = "index.html";
+      window.location.href = getLoginUrl();
     }
     return;
   }
@@ -44,7 +46,7 @@ export function protectPage(requiredRole) {
   onAuthStateChanged(auth, async (user) => {
     if (!user) {
       console.log("No authenticated user. Redirecting to login page...");
-      window.location.href = "index.html";
+      window.location.href = getLoginUrl();
       return;
     }
 
@@ -69,7 +71,7 @@ export function protectPage(requiredRole) {
 
       if (userData.role !== requiredRole) {
         showToast("Access denied: unauthorized role.", "error");
-        window.location.href = "index.html";
+        window.location.href = getLoginUrl();
         return;
       }
 
@@ -105,13 +107,13 @@ function updateUIHeader(name, email, role) {
 export async function logoutUser() {
   if (isDemoMode()) {
     sessionStorage.removeItem("lakfa_demo_user");
-    window.location.href = "index.html";
+    window.location.href = getLoginUrl();
     return;
   }
 
   try {
     await signOut(auth);
-    window.location.href = "index.html";
+    window.location.href = getLoginUrl();
   } catch (err) {
     console.error("Error signing out: ", err);
     showToast("Logout failed: " + err.message, "error");

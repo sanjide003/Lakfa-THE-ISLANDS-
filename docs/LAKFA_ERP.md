@@ -51,10 +51,10 @@ The web app is now wired to the Firebase project `fest-21d67`. Before entering r
 1. Email/password authentication enabled.
 2. Admin and investor accounts created.
 3. Matching `users/{uid}` Firestore role documents created.
-4. The rules in `firestore.rules` published to Firestore.
+4. The rules in `docs/firestore.rules` published to Firestore.
 
 ### Firestore Security Rules
-The production rules are stored in `firestore.rules`. Apply the same rules in your Firebase Console under the **Firestore Rules** tab:
+The production rules are stored in `docs/firestore.rules`. Apply the same rules in your Firebase Console under the **Firestore Rules** tab:
 ```javascript
 rules_version = '2';
 service cloud.firestore {
@@ -116,8 +116,8 @@ Deploying this project to Vercel takes less than a minute and requires no comman
 2.  Log in to the [Vercel Dashboard](https://vercel.com).
 3.  Click **"Add New"** → **"Project"**.
 4.  Import your repository.
-5.  Set the Root Directory to `lakfa-erp`.
-6.  Click **"Deploy"**. Vercel will automatically detect the static file layout and host it on a global edge CDN.
+5.  Keep the Root Directory as the repository root so Vercel serves the top-level `index.html` login page.
+6.  Click **"Deploy"**. Vercel will serve the root `index.html` login page and load the app assets from `lakfa-erp/`.
 
 ### 2. Installing PWA
 1.  Open the deployed URL in Google Chrome, Edge, or Apple Safari.

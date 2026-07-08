@@ -5,6 +5,8 @@ import { doc, getDoc } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-
 import { isDemoMode } from "./role-guard.js";
 import { showToast } from "./utils.js";
 
+const getAppPageUrl = (pageName) => new URL(`../${pageName}`, import.meta.url).href;
+
 // Standard Demo Users for offline/unconfigured testing
 const DEMO_USERS = {
   "admin@lakfa.com": {
@@ -74,9 +76,9 @@ document.addEventListener("DOMContentLoaded", () => {
               
               // Redirect based on role
               if (matchedUser.role === "admin") {
-                window.location.href = "manager.html";
+                window.location.href = getAppPageUrl("manager.html");
               } else if (matchedUser.role === "investor") {
-                window.location.href = "investor.html";
+                window.location.href = getAppPageUrl("investor.html");
               } else {
                 showError("Invalid user role. Please contact admin.");
               }
@@ -115,10 +117,10 @@ document.addEventListener("DOMContentLoaded", () => {
         // Redirect based on role mapping
         if (userData.role === "admin") {
           showToast("Welcome, Admin!", "success");
-          window.location.href = "manager.html";
+          window.location.href = getAppPageUrl("manager.html");
         } else if (userData.role === "investor") {
           showToast("Welcome, Investor!", "success");
-          window.location.href = "investor.html";
+          window.location.href = getAppPageUrl("investor.html");
         } else {
           showError("Invalid user role. Please contact admin.");
         }
