@@ -2,7 +2,7 @@
 import { auth, db } from "./firebase-config.js";
 import { signInWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
 import { doc, getDoc } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
-import { showToast } from "./utils.js";
+import { getFirebaseErrorMessage, showToast } from "./utils.js";
 
 const getAppPageUrl = (pageName) => new URL(`../${pageName}`, import.meta.url).href;
 
@@ -74,7 +74,7 @@ document.addEventListener("DOMContentLoaded", () => {
         } else if (err.code === "auth/wrong-password") {
           errorMsg = "Incorrect password. Please try again.";
         } else {
-          errorMsg = err.message;
+          errorMsg = getFirebaseErrorMessage(err, "Login failed. Please verify Firebase Auth and network access.");
         }
         showError(errorMsg);
       }

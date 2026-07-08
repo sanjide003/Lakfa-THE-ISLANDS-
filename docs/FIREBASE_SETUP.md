@@ -95,8 +95,10 @@ Company logos and signature logos are uploaded under `company/profile/` and are 
 Once authentication accounts, Firestore role records, Firestore rules, and Storage rules are created, refresh your Lakfa ERP login page. The app will connect directly to Google Firebase and direct your staff to their respective dashboards based on their role metadata.
 
 ### Production Verification Checklist
-- Demo Mode banner should not appear on the login screen.
+- Login screen should show Firebase-backed sign-in only.
 - Admin credentials should open `manager.html`.
 - Investor credentials should open `investor.html`.
 - Investor users should not be able to write Firestore data.
 - Admin users should be able to manage operational Firestore data.
+- Use `docs/firebase-seed-template.json` for safe starter collection shapes.
+- Use `docs/PRODUCTION_DEPLOYMENT_CHECKLIST.md` before publishing through Vercel.

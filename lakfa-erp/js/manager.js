@@ -1,6 +1,6 @@
 /* Lakfa ERP Manager Controller */
 import { logoutUser } from "./role-guard.js";
-import { formatCurrency, formatDate, showToast } from "./utils.js";
+import { formatCurrency, formatDate, getFirebaseErrorMessage, showToast } from "./utils.js";
 import { COLLECTIONS, commitBatchOperations, createCollectionRecord, deleteCollectionRecord, getAllCollections, updateCollectionRecord } from "./firebase-db.js";
 import { initCompanyProfileForm } from "./company-profile.js";
 
@@ -90,12 +90,23 @@ document.addEventListener("DOMContentLoaded", async () => {
 
 async function loadFirestoreData() {
   try {
+    setGlobalLoading(true, "Loading Firebase ERP data...");
     firestoreState = await getAllCollections(COLLECTION_BY_KEY);
   } catch (err) {
     console.error("Error loading Firestore data", err);
-    showToast("Unable to load Firebase data. Please check Firestore permissions and network.", "error");
+    showToast(getFirebaseErrorMessage(err, "Unable to load Firebase ERP data."), "error");
     firestoreState = {};
+  } finally {
+    setGlobalLoading(false);
   }
+}
+
+function setGlobalLoading(isLoading, message = "Loading...") {
+  document.querySelectorAll(".table-responsive tbody").forEach((tbody) => {
+    if (isLoading) {
+      tbody.innerHTML = `<tr><td colspan="20" class="text-center" style="color: var(--primary);">${message}</td></tr>`;
+    }
+  });
 }
 
 function setFormsReadOnly() {
@@ -333,7 +344,7 @@ function renderTable(key, tableBodyId) {
   tbody.innerHTML = "";
 
   if (records.length === 0) {
-    tbody.innerHTML = `<tr><td colspan="20" class="text-center" style="color: var(--text-muted);">No records found in Firebase yet.</td></tr>`;
+    tbody.innerHTML = `<tr><td colspan="20" class="text-center" style="color: var(--text-muted);">No Firebase records found for this module yet. Admin users can create the first record from the form.</td></tr>`;
     return;
   }
 
@@ -1055,7 +1066,7 @@ function setupFirestoreForm(config) {
       await refreshActiveData();
     } catch (err) {
       console.error("Firestore write failed", err);
-      showToast("Firebase write failed. Please check permissions.", "error");
+      showToast(getFirebaseErrorMessage(err, "Firebase write failed."), "error");
     } finally {
       if (button) button.disabled = false;
     }
@@ -1098,7 +1109,7 @@ async function deleteRecord(key, id) {
     await refreshActiveData();
   } catch (err) {
     console.error("Firestore delete failed", err);
-    showToast("Firebase delete failed. Please check permissions.", "error");
+    showToast(getFirebaseErrorMessage(err, "Firebase delete failed."), "error");
   }
 }
 

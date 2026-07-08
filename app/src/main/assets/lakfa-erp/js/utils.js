@@ -62,6 +62,33 @@ export function validatePhone(phone) {
   return digits.length >= 10;
 }
 
+export function getFirebaseErrorMessage(error, fallback = "Firebase request failed. Please try again.") {
+  const code = error?.code || "";
+  const message = error?.message || "";
+
+  if (code.includes("permission-denied")) {
+    return "Firebase permission denied. Confirm your admin/investor role document and deployed security rules.";
+  }
+
+  if (code.includes("unauthenticated")) {
+    return "Firebase session expired. Please sign in again.";
+  }
+
+  if (code.includes("unavailable") || code.includes("deadline-exceeded")) {
+    return "Firebase is temporarily unavailable or the network is slow. Please retry.";
+  }
+
+  if (code.includes("not-found")) {
+    return "Requested Firebase document was not found. Please refresh and try again.";
+  }
+
+  if (message) {
+    return `${fallback} (${message})`;
+  }
+
+  return fallback;
+}
+
 /**
  * Show a professional, non-blocking toast alert
  * @param {string} message 

@@ -97,7 +97,7 @@ service cloud.firestore {
 ---
 
 ## ⚡ Firebase-only Data Mode
-Lakfa ERP no longer ships demo credentials, sample records, or browser-local business storage. Dashboards, ledgers, company profile, logo, and signature branding render records/files from Firebase only. If a Firestore collection is empty, the related module shows an empty state until an admin creates records in Firebase.
+Lakfa ERP no longer ships trial credentials, placeholder records, or browser-local business storage. Dashboards, ledgers, company profile, logo, and signature branding render records/files from Firebase only. If a Firestore collection is empty, the related module shows an empty state until an admin creates records in Firebase.
 
 ---
 

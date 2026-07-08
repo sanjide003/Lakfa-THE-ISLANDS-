@@ -2,7 +2,7 @@
 import { auth, db } from "./firebase-config.js";
 import { onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
 import { doc, getDoc } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
-import { showToast } from "./utils.js";
+import { getFirebaseErrorMessage, showToast } from "./utils.js";
 
 const getLoginUrl = () => new URL("../../index.html", import.meta.url).href;
 
@@ -49,7 +49,7 @@ export function protectPage(requiredRole) {
 
     } catch (err) {
       console.error("Error verifying user role: ", err);
-      showToast("Verification error: " + err.message, "error");
+      showToast(getFirebaseErrorMessage(err, "Unable to verify your Firebase role."), "error");
     }
   });
 }
@@ -79,7 +79,7 @@ export async function logoutUser() {
     window.location.href = getLoginUrl();
   } catch (err) {
     console.error("Error signing out: ", err);
-    showToast("Logout failed: " + err.message, "error");
+    showToast(getFirebaseErrorMessage(err, "Logout failed."), "error");
   }
 }
 
