@@ -32,7 +32,7 @@ let activeDueFilter = "all";
 let appSettings = { modules: {} };
 const APP_SETTINGS_COLLECTION = "settings";
 const APP_SETTINGS_DOCUMENT = "appSettings";
-const PRINTABLE_DOCUMENT_KEYS = new Set([KEYS.purchases, KEYS.sales, KEYS.delivery]);
+const PRINTABLE_DOCUMENT_KEYS = new Set([KEYS.purchases, KEYS.sales, KEYS.orders, KEYS.delivery]);
 const NOTIFICATION_DOCUMENT_KEYS = new Set([KEYS.orders, KEYS.sales, KEYS.delivery]);
 const READ_ONLY_MESSAGE = "This module is read-only until its Firestore write workflow is enabled.";
 const WRITABLE_FORM_IDS = new Set([
@@ -384,7 +384,7 @@ function getLines(id) {
 
 function getDefaultNotificationTemplates(sectionKey) {
   const templates = {
-    orders: "orderConfirmation=Hi {{customer}}, your order {{orderId}} for {{product}} is confirmed. Total payable: {{amount}}. - {{companyName}}",
+    orders: "orderConfirmation=Hi {{customer}}, your order {{orderId}} is {{status}}. Items: {{product}}. Total: {{amount}}. Paid: {{paidAmount}}. Balance due: {{balanceDue}}. - {{companyName}}",
     sales: "paymentReminder=Hi {{customer}}, payment status for invoice {{invoiceNumber}} is {{paymentStatus}}. Amount: {{amount}}. Please contact {{companyName}} for support.\ninvoiceShare=Hi {{customer}}, your invoice {{invoiceNumber}} for {{product}} is ready. Amount: {{amount}}. {{invoiceLink}} - {{companyName}}",
     delivery: "deliveryTracking=Hi {{customer}}, your order {{orderId}} is {{status}} via {{courier}}. Tracking ID: {{trackingId}}. - {{companyName}}"
   };
@@ -778,15 +778,17 @@ function initOrderManagementUi() {
   document.getElementById("orders-table-body")?.addEventListener("click", (event) => {
     const target = event.target.closest("button");
     if (!target) return;
-    const id = target.dataset.orderEdit || target.dataset.orderDelete || target.dataset.orderPrint || target.dataset.orderCopy || target.dataset.orderPayment || target.dataset.orderStatusUpdate || target.dataset.orderRestore || target.dataset.orderPermanentDelete;
+    const id = target.dataset.orderEdit || target.dataset.orderDelete || target.dataset.orderLabel || target.dataset.orderBill || target.dataset.orderCopy || target.dataset.orderWhatsapp || target.dataset.orderPayment || target.dataset.orderStatusUpdate || target.dataset.orderRestore || target.dataset.orderPermanentDelete;
     if (!id) return;
     if (target.dataset.orderEdit) {
       openOrderModal();
       loadRecordForEdit(KEYS.orders, id);
     }
     if (target.dataset.orderDelete) softDeleteOrder(id);
-    if (target.dataset.orderPrint) printDocument(KEYS.orders, id);
+    if (target.dataset.orderLabel) printOrderLabel(id);
+    if (target.dataset.orderBill) printDocument(KEYS.orders, id);
     if (target.dataset.orderCopy) copyNotificationMessage(KEYS.orders, id);
+    if (target.dataset.orderWhatsapp) openWhatsAppNotification(KEYS.orders, id);
     if (target.dataset.orderPayment) {
       openOrderPaymentModal(id);
     }
@@ -1126,9 +1128,10 @@ function renderOrderActions(order) {
       </select>
       <button class="btn-secondary btn-sm" type="button" data-order-status-update="${order.id}">Set</button>
     </div>
-    <button class="btn-secondary btn-sm" type="button" data-order-print="${order.id}">Label</button>
-    <button class="btn-secondary btn-sm print-doc-btn" type="button" data-order-print="${order.id}">Bill</button>
+    <button class="btn-secondary btn-sm" type="button" data-order-label="${order.id}">Label</button>
+    <button class="btn-secondary btn-sm print-doc-btn" type="button" data-order-bill="${order.id}">Bill</button>
     <button class="btn-secondary btn-sm copy-notification-btn" type="button" data-order-copy="${order.id}">Copy Msg</button>
+    <button class="btn-secondary btn-sm whatsapp-btn" type="button" data-order-whatsapp="${order.id}">WhatsApp</button>
     <button class="btn-secondary btn-sm edit-btn" type="button" data-order-edit="${order.id}">Update</button>
     <button class="btn-primary btn-sm" type="button" data-order-payment="${order.id}">Payment</button>
     <button class="btn-danger btn-sm delete-btn" type="button" data-order-delete="${order.id}">Delete</button>
@@ -1454,6 +1457,8 @@ function getNotificationContext(key, record, profile = {}) {
     phone: record.phone || record.customerPhone || customer.phone || order?.phone || "",
     product: record.product || order?.product || record.itemName || "",
     amount: formatCurrency(amount),
+    paidAmount: formatCurrency(record.paidAmount || 0),
+    balanceDue: formatCurrency(record.balanceDue ?? Math.max((record.totalPayable || 0) - (record.paidAmount || 0), 0)),
     status: record.orderStatus || record.paymentStatus || record.status || "",
     paymentStatus: record.paymentStatus || "",
     trackingId: record.trackingId || "",
@@ -1542,6 +1547,21 @@ function getPrintableDocumentMeta(key) {
     };
   }
 
+  if (key === KEYS.orders) {
+    return {
+      title: "Order Bill",
+      documentType: "Customer Order Bill",
+      moduleName: "orders",
+      prefixFallback: "ORD",
+      numberLabel: "Order No",
+      recordNumber: (record) => record.orderNumber || record.id,
+      partyLabel: "Bill / Ship To",
+      amountLabel: "Total Payable",
+      amountField: "totalPayable",
+      defaultGstRate: 18
+    };
+  }
+
   return {
     title: "Delivery Note",
     documentType: "Delivery Note",
@@ -1565,6 +1585,27 @@ function getPrintableLineItems(key, record, totals) {
     return [{ item: record.itemName || record.item, hsn: record.hsn || record.hsnCode || "-", qty: record.qty, rate: record.rate, taxable: totals.taxableValue, total: totals.grandTotal }];
   }
 
+  if (key === KEYS.orders) {
+    const items = Array.isArray(record.items) && record.items.length
+      ? record.items
+      : [{ name: record.product, qty: record.qty, amount: record.amount }];
+    return items.map((item) => ({
+      item: item.name || item.product || "-",
+      hsn: item.hsn || item.hsnCode || "-",
+      qty: item.qty || item.quantity || 1,
+      rate: getNumberFromValue(item.qty || item.quantity) ? getNumberFromValue(item.amount) / getNumberFromValue(item.qty || item.quantity) : getNumberFromValue(item.amount),
+      taxable: getNumberFromValue(item.amount),
+      total: getNumberFromValue(item.amount)
+    })).concat(getNumberFromValue(record.deliveryCharge) ? [{
+      item: "Delivery / Packing Charge",
+      hsn: "-",
+      qty: 1,
+      rate: getNumberFromValue(record.deliveryCharge),
+      taxable: getNumberFromValue(record.deliveryCharge),
+      total: getNumberFromValue(record.deliveryCharge)
+    }] : []);
+  }
+
   return [{ item: `Courier: ${record.partner || "-"}`, hsn: record.hsn || "-", qty: 1, rate: record.charge, taxable: totals.taxableValue, total: totals.grandTotal }];
 }
 
@@ -1574,7 +1615,10 @@ function getPartyDetails(key, record) {
     party.name,
     party.address,
     party.phone ? `Phone: ${party.phone}` : "",
+    party.pincode ? `PIN: ${party.pincode}` : "",
     party.gst ? `GSTIN: ${party.gst}` : "",
+    key === KEYS.orders && record.locationLink ? `Location: ${record.locationLink}` : "",
+    key === KEYS.orders ? `Payment Due: ${formatCurrency(record.balanceDue ?? Math.max((record.totalPayable || 0) - (record.paidAmount || 0), 0))}` : "",
     key === KEYS.delivery && record.trackingId ? `Tracking: ${record.trackingId}` : "",
     key === KEYS.delivery && record.status ? `Status: ${record.status}` : "",
     key === KEYS.sales && record.notes ? `Notes: ${record.notes}` : "",
@@ -1608,7 +1652,8 @@ function getDocumentParty(key, record) {
     name: record.customer || record.customerName || "-",
     address: record.address || record.deliveryAddress || "",
     phone: record.phone || record.customerPhone || "",
-    gst: record.customerGst || record.customerGST || ""
+    gst: record.gstNumber || record.customerGst || record.customerGST || "",
+    pincode: record.pincode || record.pin || ""
   };
 }
 
@@ -1815,6 +1860,83 @@ async function printDocument(key, id) {
   const printWindow = window.open("", "_blank", "width=900,height=700");
   if (!printWindow) {
     showToast("Popup blocked. Please allow popups to print this document.", "error");
+    return;
+  }
+  printWindow.document.open();
+  printWindow.document.write(html);
+  printWindow.document.close();
+  printWindow.focus();
+  printWindow.print();
+}
+
+async function printOrderLabel(id) {
+  const record = getStoredRecords(KEYS.orders).find((item) => item.id === id);
+  if (!record) {
+    showToast("Unable to find this Firestore order for label printing.", "error");
+    return;
+  }
+
+  const profile = await getCompanyProfileForDocument();
+  const items = getPrintableLineItems(KEYS.orders, record, { taxableValue: record.amount || 0, grandTotal: record.totalPayable || 0 })
+    .filter((item) => item.item !== "Delivery / Packing Charge")
+    .map((item) => `${item.item} (${item.qty})`)
+    .join(", ");
+  const logo = profile.logoDataUrl ? `<img src="${profile.logoDataUrl}" alt="Company logo">` : "";
+  const paymentDue = getNumberFromValue(record.balanceDue ?? Math.max((record.totalPayable || 0) - (record.paidAmount || 0), 0));
+  const html = `<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>Courier Label - ${escapeHtml(record.id || "Order")}</title>
+  <style>
+    @page { size: 100mm 150mm; margin: 6mm; }
+    * { box-sizing: border-box; }
+    body { font-family: Arial, Helvetica, sans-serif; margin: 0; color: #0f172a; }
+    .label { width: 100mm; min-height: 140mm; padding: 8mm; border: 2px solid #111827; }
+    .brand { display: flex; align-items: center; gap: 8px; border-bottom: 1px solid #cbd5e1; padding-bottom: 8px; margin-bottom: 10px; }
+    .brand img { width: 44px; height: 44px; object-fit: contain; }
+    .brand h1 { margin: 0; font-size: 17px; color: #0f766e; }
+    .muted { color: #475569; font-size: 10px; }
+    .block { border: 1px solid #cbd5e1; border-radius: 6px; padding: 8px; margin-bottom: 8px; }
+    .block h2 { margin: 0 0 6px; font-size: 11px; text-transform: uppercase; color: #475569; }
+    .name { font-size: 18px; font-weight: 800; }
+    .line { margin: 3px 0; font-size: 12px; }
+    .status { display: inline-block; padding: 4px 8px; border-radius: 999px; background: #fef3c7; color: #92400e; font-weight: 700; font-size: 11px; }
+    .due { color: #b91c1c; font-weight: 800; }
+    @media print { .label { border: 2px solid #111827; } }
+  </style>
+</head>
+<body>
+  <main class="label">
+    <section class="brand">${logo}<div><h1>${escapeHtml(profile.companyName || "Lakfa ERP")}</h1><div class="muted">${escapeHtml(profile.phone || "")} ${profile.gst ? ` • GSTIN: ${escapeHtml(profile.gst)}` : ""}</div></div></section>
+    <section class="block">
+      <h2>Ship To</h2>
+      <div class="name">${escapeHtml(record.customer || record.customerName || "Customer")}</div>
+      <div class="line">Phone: ${escapeHtml(record.phone || "-")}</div>
+      <div class="line">PIN: ${escapeHtml(record.pincode || record.pin || "-")}</div>
+      <div class="line">${escapeHtml(record.address || "-")}</div>
+      ${record.landmark ? `<div class="line">Landmark: ${escapeHtml(record.landmark)}</div>` : ""}
+    </section>
+    <section class="block">
+      <h2>Order</h2>
+      <div class="line"><strong>Order:</strong> ${escapeHtml(formatDocumentNumber(getPrintableDocumentMeta(KEYS.orders), record))}</div>
+      <div class="line"><strong>Items:</strong> ${escapeHtml(items || record.product || "-")}</div>
+      <div class="line"><strong>Total:</strong> ${formatCurrency(record.totalPayable || 0)}</div>
+      <div class="line due"><strong>Payment Due:</strong> ${formatCurrency(paymentDue)}</div>
+      <div class="line"><span class="status">${escapeHtml(record.orderStatus || "Pending")}</span></div>
+    </section>
+    <section class="block">
+      <h2>From</h2>
+      <div class="line"><strong>${escapeHtml(profile.companyName || "Lakfa ERP")}</strong></div>
+      <div class="line">${escapeHtml([profile.address, profile.state, profile.pincode].filter(Boolean).join(", "))}</div>
+      <div class="line">${escapeHtml(profile.email || "")}</div>
+    </section>
+  </main>
+</body>
+</html>`;
+  const printWindow = window.open("", "_blank", "width=480,height=720");
+  if (!printWindow) {
+    showToast("Popup blocked. Please allow popups to print this label.", "error");
     return;
   }
   printWindow.document.open();
