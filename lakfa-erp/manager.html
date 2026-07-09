@@ -17,31 +17,82 @@
     <!-- Sidebar Navigation -->
     <aside id="sidebar" class="sidebar">
       <div class="sidebar-header">
-        <span class="sidebar-logo">Lakfa ERP</span>
+        <span class="sidebar-logo" data-company-name>Lakfa ERP</span>
         <button id="sidebar-close" class="menu-toggle" style="font-size: 1.5rem; display: none;">&times;</button>
       </div>
-      <nav class="sidebar-menu">
+      <nav class="sidebar-menu sidebar-accordion">
         <a href="#" class="sidebar-item active" data-section="dashboard"><span class="icon"><svg viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="9"></rect><rect x="14" y="3" width="7" height="5"></rect><rect x="14" y="12" width="7" height="9"></rect><rect x="3" y="16" width="7" height="5"></rect></svg></span> Dashboard</a>
-        <a href="#" class="sidebar-item" data-section="company"><span class="icon"><svg viewBox="0 0 24 24"><rect x="4" y="2" width="16" height="20" rx="2" ry="2"></rect><line x1="9" y1="22" x2="9" y2="16"></line><line x1="15" y1="22" x2="15" y2="16"></line><line x1="9" y1="16" x2="15" y2="16"></line><path d="M9 6h6M9 10h6M9 14h6"></path></svg></span> Company Profile</a>
-        <a href="#" class="sidebar-item" data-section="products"><span class="icon"><svg viewBox="0 0 24 24"><line x1="16.5" y1="9.4" x2="7.5" y2="4.21"></line><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path><polyline points="3.27 6.96 12 12.01 20.73 6.96"></polyline><line x1="12" y1="22.08" x2="12" y2="12"></line></svg></span> Products</a>
-        <a href="#" class="sidebar-item" data-section="customers"><span class="icon"><svg viewBox="0 0 24 24"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg></span> Customers</a>
-        <a href="#" class="sidebar-item" data-section="suppliers"><span class="icon"><svg viewBox="0 0 24 24"><rect x="2" y="7" width="20" height="14" rx="2" ry="2"></rect><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"></path></svg></span> Suppliers</a>
-        <a href="#" class="sidebar-item" data-section="purchase"><span class="icon"><svg viewBox="0 0 24 24"><circle cx="9" cy="21" r="1"></circle><circle cx="20" cy="21" r="1"></circle><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"></path></svg></span> Purchase</a>
-        <a href="#" class="sidebar-item" data-section="inventory"><span class="icon"><svg viewBox="0 0 24 24"><polyline points="21 8 21 21 3 21 3 8"></polyline><rect x="1" y="3" width="22" height="5"></rect><line x1="10" y1="12" x2="14" y2="12"></line></svg></span> Inventory / Stock</a>
-        <a href="#" class="sidebar-item" data-section="production"><span class="icon"><svg viewBox="0 0 24 24"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"></path></svg></span> Production</a>
-        <a href="#" class="sidebar-item" data-section="sales"><span class="icon"><svg viewBox="0 0 24 24"><path d="M6 3h12M6 8h12M14.5 8A5.5 5.5 0 0 0 9 13.5M9 13.5h9M9 13.5L16 21"></path></svg></span> Sales</a>
-        <a href="#" class="sidebar-item" data-section="orders"><span class="icon"><svg viewBox="0 0 24 24"><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"></path><rect x="8" y="2" width="8" height="4" rx="1" ry="1"></rect></svg></span> Orders</a>
-        <a href="#" class="sidebar-item" data-section="delivery"><span class="icon"><svg viewBox="0 0 24 24"><rect x="1" y="3" width="15" height="13"></rect><polygon points="16 8 20 8 23 11 23 16 16 16 16 8"></polygon><circle cx="5.5" cy="18.5" r="2.5"></circle><circle cx="18.5" cy="18.5" r="2.5"></circle></svg></span> Delivery / Courier</a>
-        <a href="#" class="sidebar-item" data-section="expenses"><span class="icon"><svg viewBox="0 0 24 24"><line x1="17" y1="7" x2="7" y2="17"></line><polyline points="17 17 7 17 7 7"></polyline></svg></span> Expenses</a>
-        <a href="#" class="sidebar-item" data-section="income"><span class="icon"><svg viewBox="0 0 24 24"><line x1="7" y1="17" x2="17" y2="7"></line><polyline points="7 7 17 7 17 17"></polyline></svg></span> Income</a>
-        <a href="#" class="sidebar-item" data-section="cashbook"><span class="icon"><svg viewBox="0 0 24 24"><path d="M21 12V7a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-3a2 2 0 0 0-2-2H3"></path></svg></span> Cash Book</a>
-        <a href="#" class="sidebar-item" data-section="bankbook"><span class="icon"><svg viewBox="0 0 24 24"><path d="M3 21h18M3 10h18M3 10l9-7 9 7M4 10v11M20 10v11M8 14v3M12 14v3M16 14v3"></path></svg></span> Bank Book</a>
-        <a href="#" class="sidebar-item" data-section="accounting"><span class="icon"><svg viewBox="0 0 24 24"><rect x="4" y="2" width="16" height="20" rx="2" ry="2"></rect><line x1="8" y1="6" x2="16" y2="6"></line><line x1="16" y1="10" x2="16" y2="18"></line><line x1="8" y1="10" x2="8" y2="10.01"></line><line x1="12" y1="10" x2="12" y2="10.01"></line><line x1="8" y1="14" x2="8" y2="14.01"></line><line x1="12" y1="14" x2="12" y2="14.01"></line><line x1="8" y1="18" x2="8" y2="18.01"></line><line x1="12" y1="18" x2="12" y2="18.01"></line></svg></span> Accounting Summary</a>
-        <a href="#" class="sidebar-item" data-section="investors"><span class="icon"><svg viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M23 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg></span> Investors</a>
-        <a href="#" class="sidebar-item" data-section="investment-sharing"><span class="icon"><svg viewBox="0 0 24 24"><line x1="19" y1="5" x2="5" y2="19"></line><circle cx="6.5" cy="6.5" r="2.5"></circle><circle cx="17.5" cy="17.5" r="2.5"></circle></svg></span> Profit Sharing</a>
-        <a href="#" class="sidebar-item" data-section="reports"><span class="icon"><svg viewBox="0 0 24 24"><line x1="18" y1="20" x2="18" y2="10"></line><line x1="12" y1="20" x2="12" y2="4"></line><line x1="6" y1="20" x2="6" y2="14"></line></svg></span> Reports</a>
-        <a href="#" class="sidebar-item" data-section="gstreports"><span class="icon"><svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg></span> GST Reports</a>
-        <a href="#" class="sidebar-item" data-section="settings"><span class="icon"><svg viewBox="0 0 24 24"><line x1="4" y1="21" x2="4" y2="14"></line><line x1="4" y1="10" x2="4" y2="3"></line><line x1="12" y1="21" x2="12" y2="12"></line><line x1="12" y1="8" x2="12" y2="3"></line><line x1="20" y1="21" x2="20" y2="16"></line><line x1="20" y1="12" x2="20" y2="3"></line><line x1="2" y1="14" x2="6" y2="14"></line><line x1="10" y1="8" x2="14" y2="8"></line><line x1="18" y1="16" x2="22" y2="16"></line></svg></span> Settings</a>
+
+        <div class="sidebar-group expanded">
+          <button class="sidebar-group-toggle" type="button"><span>Order Management</span><span class="chevron">⌄</span></button>
+          <div class="sidebar-submenu">
+            <a href="#" class="sidebar-item" data-section="orders" data-order-view="pending"><span class="icon" data-icon="orders"></span> Orders</a>
+            <a href="#" class="sidebar-item" data-section="orders" data-order-view="payment-due"><span class="icon" data-icon="payment"></span> Payment Due</a>
+            <a href="#" class="sidebar-item" data-section="orders" data-order-view="promotions"><span class="icon" data-icon="tag"></span> Promotions</a>
+            <a href="#" class="sidebar-item" data-section="orders" data-order-view="returns"><span class="icon" data-icon="return"></span> Return</a>
+            <a href="#" class="sidebar-item" data-section="orders" data-order-view="cancelled"><span class="icon" data-icon="cancel"></span> Order Cancelled</a>
+            <a href="#" class="sidebar-item" data-section="orders" data-order-view="recycle-bin"><span class="icon" data-icon="trash"></span> Recycle Bin</a>
+          </div>
+        </div>
+
+        <div class="sidebar-group">
+          <button class="sidebar-group-toggle" type="button"><span>Parties</span><span class="chevron">⌄</span></button>
+          <div class="sidebar-submenu">
+            <a href="#" class="sidebar-item" data-section="customers"><span class="icon" data-icon="user"></span> Customers</a>
+            <a href="#" class="sidebar-item" data-section="suppliers"><span class="icon" data-icon="store"></span> Suppliers</a>
+            <a href="#" class="sidebar-item" data-section="investors"><span class="icon" data-icon="users"></span> Investors</a>
+          </div>
+        </div>
+
+        <div class="sidebar-group">
+          <button class="sidebar-group-toggle" type="button"><span>Inventory & Products</span><span class="chevron">⌄</span></button>
+          <div class="sidebar-submenu">
+            <a href="#" class="sidebar-item" data-section="products"><span class="icon" data-icon="box"></span> Products</a>
+            <a href="#" class="sidebar-item" data-section="inventory"><span class="icon" data-icon="inventory"></span> Inventory / Stock</a>
+            <a href="#" class="sidebar-item" data-section="production"><span class="icon" data-icon="production"></span> Production</a>
+          </div>
+        </div>
+
+        <div class="sidebar-group">
+          <button class="sidebar-group-toggle" type="button"><span>Sale</span><span class="chevron">⌄</span></button>
+          <div class="sidebar-submenu">
+            <a href="#" class="sidebar-item" data-section="sales"><span class="icon" data-icon="invoice"></span> Sale Invoices</a>
+            <a href="#" class="sidebar-item" data-section="sales"><span class="icon" data-icon="plus"></span> Estimate / Quotation</a>
+            <a href="#" class="sidebar-item" data-section="sales"><span class="icon" data-icon="plus"></span> Proforma Invoice</a>
+            <a href="#" class="sidebar-item" data-section="income"><span class="icon" data-icon="plus"></span> Payment-In / Other Income</a>
+            <a href="#" class="sidebar-item" data-section="orders" data-order-view="all"><span class="icon" data-icon="plus"></span> Sale Order</a>
+            <a href="#" class="sidebar-item" data-section="delivery"><span class="icon" data-icon="delivery"></span> Delivery Challan</a>
+          </div>
+        </div>
+
+        <div class="sidebar-group">
+          <button class="sidebar-group-toggle" type="button"><span>Purchase & Expense</span><span class="chevron">⌄</span></button>
+          <div class="sidebar-submenu">
+            <a href="#" class="sidebar-item" data-section="purchase"><span class="icon" data-icon="purchase"></span> Purchase Bills</a>
+            <a href="#" class="sidebar-item" data-section="expenses"><span class="icon" data-icon="expense"></span> Payment-Out / Expenses</a>
+          </div>
+        </div>
+
+        <div class="sidebar-group">
+          <button class="sidebar-group-toggle" type="button"><span>Cash, Bank & Assets</span><span class="chevron">⌄</span></button>
+          <div class="sidebar-submenu">
+            <a href="#" class="sidebar-item" data-section="bankbook"><span class="icon" data-icon="bank"></span> Bank Accounts</a>
+            <a href="#" class="sidebar-item" data-section="cashbook"><span class="icon" data-icon="cash"></span> Cash In Hand</a>
+          </div>
+        </div>
+
+        <div class="sidebar-group">
+          <button class="sidebar-group-toggle" type="button"><span>Accounting</span><span class="chevron">⌄</span></button>
+          <div class="sidebar-submenu">
+            <a href="#" class="sidebar-item" data-section="accounting"><span class="icon" data-icon="accounting"></span> Accounting Summary</a>
+            <a href="#" class="sidebar-item" data-section="reports"><span class="icon" data-icon="report"></span> Reports</a>
+            <a href="#" class="sidebar-item" data-section="gstreports"><span class="icon" data-icon="gst"></span> GST Reports</a>
+          </div>
+        </div>
+
+        <a href="#" class="sidebar-item" data-section="investment-sharing"><span class="icon" data-icon="share"></span> Profit Sharing</a>
+        <a href="#" class="sidebar-item" data-section="company"><span class="icon" data-icon="company"></span> Company Profile</a>
+        <a href="#" class="sidebar-item" data-section="settings"><span class="icon" data-icon="settings"></span> Settings</a>
         <hr style="margin: 0.5rem 0; border: 0; border-top: 1px solid var(--border);">
         <a href="#" id="logout-btn" class="sidebar-item" style="color: var(--danger);"><span class="icon" style="color: var(--danger);"><svg viewBox="0 0 24 24"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path><polyline points="16 17 21 12 16 7"></polyline><line x1="21" y1="12" x2="9" y2="12"></line></svg></span> Logout</a>
       </nav>
@@ -52,10 +103,11 @@
       <!-- Top Header -->
       <header class="top-header">
         <div class="header-title-section">
-          <button id="menu-toggle" class="menu-toggle">☰</button>
+          <button id="menu-toggle" class="menu-toggle" aria-label="Open menu"><svg viewBox="0 0 24 24"><line x1="4" y1="6" x2="20" y2="6"></line><line x1="4" y1="12" x2="20" y2="12"></line><line x1="4" y1="18" x2="20" y2="18"></line></svg></button>
           <span id="header-page-title" class="header-page-title">Admin Dashboard</span>
         </div>
         <div class="header-user-section">
+          <button id="module-settings-btn" class="icon-button" type="button" title="Current tab settings" aria-label="Current tab settings"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09a1.65 1.65 0 0 0-1-1.51 1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.6 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 8a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 8.92 3a1.65 1.65 0 0 0 1-1.51V1a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 8c.36.31.85.5 1.38.5H21a2 2 0 1 1 0 4h-.09c-.53 0-1.02.19-1.38.5z"></path></svg></button>
           <span id="header-user-role" class="badge badge-success">Admin / Manager</span>
           <div class="user-info">
             <span id="header-user-name" class="user-name">Loading...</span>
@@ -70,7 +122,7 @@
         <!-- ================= DASHBOARD MODULE ================= -->
         <section id="section-dashboard" class="app-section active">
           <div class="section-header">
-            <h1 class="section-title">Lakfa Foods Performance Dashboard</h1>
+            <h1 class="section-title"><span data-company-name>Lakfa ERP</span> Performance Dashboard</h1>
             <span style="font-size: 0.875rem; color: var(--text-muted);">Real-time Operations Ledger</span>
           </div>
           
@@ -152,21 +204,53 @@
 
         <!-- ================= COMPANY PROFILE MODULE ================= -->
         <section id="section-company" class="app-section">
-          <div class="card" style="max-width: 600px; margin: 0 auto;">
-            <div class="card-title">Company Profile Details</div>
-            <div style="text-align: center; margin-bottom: 1.5rem;">
-              <h2 style="color: var(--primary);">Lakfa Foods Private Limited</h2>
-              <p style="color: var(--text-muted); font-size: 0.875rem;">Premium Spices & Flour Manufacture</p>
-            </div>
-            <table class="table" style="font-size: 0.875rem; width: 100%;">
-              <tr><td style="font-weight: 600; width: 40%;">CIN / Registration</td><td>U15490KL2026PTC099887</td></tr>
-              <tr><td style="font-weight: 600;">GSTIN No.</td><td>32AAACL8901D1Z4</td></tr>
-              <tr><td style="font-weight: 600;">Registered Office</td><td>12/4B, Industrial Development Area, Kinfra Park, Malappuram, Kerala - 676505</td></tr>
-              <tr><td style="font-weight: 600;">Contact Phone</td><td>+91 94471 00200</td></tr>
-              <tr><td style="font-weight: 600;">Official Email</td><td>operations@lakfafoods.com</td></tr>
-              <tr><td style="font-weight: 600;">Authorized Signatory</td><td>Managing Director / CEO</td></tr>
-              <tr><td style="font-weight: 600;">Business Categories</td><td>Packaged Goods, Flour Milling, Spice Blending</td></tr>
-            </table>
+          <div class="card" style="max-width: 900px; margin: 0 auto;">
+            <div class="card-title">Company Profile & Branding</div>
+            <form id="company-profile-form" data-firestore-write="companyProfile">
+              <div style="display: flex; align-items: center; gap: 1rem; margin-bottom: 1.5rem;">
+                <img id="company-logo-preview" data-company-logo hidden alt="Company logo preview" style="width: 72px; height: 72px; object-fit: contain; border: 1px solid var(--border); border-radius: 12px; padding: 0.35rem; background: #fff;">
+                <div>
+                  <h2 data-company-name style="color: var(--primary); margin: 0;">Lakfa ERP</h2>
+                  <p style="color: var(--text-muted); font-size: 0.875rem; margin-top: 0.25rem;">Saved in Firebase: settings/companyProfile</p>
+                </div>
+              </div>
+
+              <div class="form-grid-2">
+                <div class="form-group"><label>Company Name</label><input name="companyName" class="form-control" required placeholder="Company legal/trade name"></div>
+                <div class="form-group"><label>GST Number</label><input name="gst" class="form-control" placeholder="GSTIN"></div>
+              </div>
+              <div class="form-group"><label>Address</label><textarea name="address" class="form-control" rows="3" placeholder="Registered/business address"></textarea></div>
+              <div class="form-grid-3" style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 0.75rem;">
+                <div class="form-group"><label>State</label><input name="state" class="form-control" placeholder="State"></div>
+                <div class="form-group"><label>Pincode</label><input name="pincode" class="form-control" placeholder="PIN code"></div>
+                <div class="form-group"><label>Business Type</label><input name="businessType" class="form-control" placeholder="Manufacturer, Trader, etc."></div>
+              </div>
+              <div class="form-grid-2">
+                <div class="form-group"><label>Business Category</label><input name="businessCategory" class="form-control" placeholder="Food, spices, retail, etc."></div>
+                <div class="form-group"><label>Website Link</label><input name="website" type="url" class="form-control" placeholder="https://example.com"></div>
+              </div>
+              <div class="form-grid-2">
+                <div class="form-group"><label>Phone Number</label><input name="phone" class="form-control" placeholder="Company phone"></div>
+                <div class="form-group"><label>Email</label><input name="email" type="email" class="form-control" placeholder="company@example.com"></div>
+              </div>
+              <div class="form-group"><label>Social Media Links</label><textarea name="socialLinks" class="form-control" rows="2" placeholder="Instagram, Facebook, YouTube, LinkedIn links"></textarea></div>
+              <div class="form-grid-2">
+                <div class="form-group">
+                  <label>Company Logo</label>
+                  <input id="company-logo-file" name="logoFile" type="file" class="form-control" accept="image/*">
+                  <textarea name="logoDataUrl" class="form-control" rows="2" readonly placeholder="Compressed logo text will be saved in Firestore" style="margin-top: 0.5rem;"></textarea>
+                  <small id="company-logo-status" style="color: var(--text-muted); display: block; margin-top: 0.35rem;">No Firestore image saved yet.</small>
+                </div>
+                <div class="form-group">
+                  <label>Signature Logo</label>
+                  <input id="company-signature-logo-file" name="signatureLogoFile" type="file" class="form-control" accept="image/*">
+                  <textarea name="signatureDataUrl" class="form-control" rows="2" readonly placeholder="Compressed signature text will be saved in Firestore" style="margin-top: 0.5rem;"></textarea>
+                  <small id="company-signature-logo-status" style="color: var(--text-muted); display: block; margin-top: 0.35rem;">No Firestore image saved yet.</small>
+                  <img id="company-signature-logo-preview" hidden alt="Signature preview" style="max-height: 72px; max-width: 180px; object-fit: contain; margin-top: 0.5rem; border: 1px solid var(--border); border-radius: 8px; padding: 0.35rem; background: #fff;">
+                </div>
+              </div>
+              <button type="submit" class="btn-primary" style="width: 100%; margin-top: 1rem;">Save Company Profile to Firebase</button>
+            </form>
           </div>
         </section>
 
@@ -489,59 +573,139 @@
 
         <!-- ================= ORDERS MODULE ================= -->
         <section id="section-orders" class="app-section">
-          <div class="section-header"><h2 class="section-title">Order Processing Desk</h2></div>
-          <div class="module-layout">
-            <div class="card">
-              <div class="card-title">Book New Order</div>
+          <div class="section-header order-page-header">
+            <h2 class="section-title">Order Management</h2>
+            <button type="button" id="open-order-modal-btn" class="btn-primary">+ Add New Order</button>
+          </div>
+
+          <div class="order-status-tabs" role="tablist" aria-label="Order status filters">
+            <button type="button" class="order-tab active" data-order-tab="pending">Pending</button>
+            <button type="button" class="order-tab" data-order-tab="processing">Processing</button>
+            <button type="button" class="order-tab" data-order-tab="shipped">Shipped</button>
+            <button type="button" class="order-tab" data-order-tab="delivered">Delivered</button>
+            <button type="button" class="order-tab" data-order-tab="all">All Orders</button>
+            <button type="button" class="order-tab" data-order-tab="promotions">Promotions</button>
+          </div>
+
+          <div id="order-payment-due-filters" class="order-due-filters" hidden>
+            <strong>Filter Due by Status</strong>
+            <button type="button" class="due-filter active" data-due-filter="all">All Due</button>
+            <button type="button" class="due-filter" data-due-filter="pending">Pending</button>
+            <button type="button" class="due-filter" data-due-filter="processing">Processing</button>
+            <button type="button" class="due-filter" data-due-filter="shipped">Shipped</button>
+            <button type="button" class="due-filter" data-due-filter="delivered">Delivered</button>
+          </div>
+
+          <div class="order-filter-bar">
+            <div class="form-group"><label>Search</label><input type="search" id="orders-search" class="form-control" placeholder="Name or Phone..."></div>
+            <div class="form-group"><label>From Date</label><input type="date" id="orders-from-date" class="form-control"></div>
+            <div class="form-group"><label>To Date</label><input type="date" id="orders-to-date" class="form-control"></div>
+          </div>
+
+          <div id="order-bulk-actions" class="order-bulk-actions" hidden>
+            <strong><span id="selected-orders-count">0</span> selected</strong>
+            <button type="button" id="bulk-restore-orders" class="btn-secondary btn-sm">Restore</button>
+            <button type="button" id="bulk-permanent-delete-orders" class="btn-danger btn-sm">Permanent Delete</button>
+          </div>
+
+          <div class="table-responsive order-table-wrap">
+            <table class="orders-screen-table">
+              <thead>
+                <tr>
+                  <th><input type="checkbox" id="orders-select-all" aria-label="Select all visible orders"></th>
+                  <th>Date</th><th>Contact</th><th>Items</th><th>Status</th><th>Expense</th><th>Payment</th><th>Action</th>
+                </tr>
+              </thead>
+              <tbody id="orders-table-body"></tbody>
+            </table>
+          </div>
+
+          <div id="order-modal" class="modal-overlay" hidden>
+            <div class="modal-card order-modal-card">
+              <div class="modal-header">
+                <h3>Add New Order</h3>
+                <button type="button" id="close-order-modal-btn" class="icon-button" aria-label="Close order form">×</button>
+              </div>
               <form id="orders-form">
                 <div class="form-grid-2">
-                  <div class="form-group"><label>Order Date</label><input type="date" id="ord-date" class="form-control" required></div>
-                  <div class="form-group">
-                    <label>Order Source</label>
-                    <select id="ord-source" class="form-control">
-                      <option>WhatsApp</option><option>Website</option><option>Instagram</option><option>Phone</option><option>Direct</option>
-                    </select>
-                  </div>
+                  <div class="form-group"><label>Date</label><input type="date" id="ord-date" class="form-control" required></div>
+                  <div class="form-group"><label>Status</label><select id="ord-ostatus" class="form-control"><option>Pending</option><option>Processing</option><option>Shipped</option><option>Delivered</option><option>Cancelled</option><option>Returned</option></select></div>
                 </div>
+                <hr class="modal-divider">
+                <h4>Customer Details</h4>
                 <div class="form-grid-2">
-                  <div class="form-group"><label>Customer Name</label><input type="text" id="ord-customer" class="form-control" required></div>
-                  <div class="form-group"><label>Phone Number</label><input type="tel" id="ord-phone" class="form-control" required></div>
+                  <div class="form-group"><label>Phone</label><input type="tel" id="ord-phone" class="form-control" required placeholder="Type phone to find repeat customers"></div>
+                  <div class="form-group"><label>Name</label><input type="text" id="ord-customer" class="form-control" required></div>
+                  <div class="form-group"><label>GST Number (Optional)</label><input type="text" id="ord-gst" class="form-control"></div>
+                  <div class="form-group"><label>Shop Name (Optional)</label><input type="text" id="ord-shop" class="form-control"></div>
+                  <div class="form-group"><label>Landmark (Optional)</label><input type="text" id="ord-landmark" class="form-control"></div>
+                  <div class="form-group"><label>Pincode</label><input type="text" id="ord-pin" class="form-control"></div>
                 </div>
-                <div class="form-group"><label>Product Requested</label><input type="text" id="ord-product" class="form-control" required></div>
-                <div class="form-grid-3" style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 0.5rem;">
-                  <div class="form-group"><label>Quantity</label><input type="number" id="ord-qty" class="form-control" required></div>
-                  <div class="form-group"><label>Order Amount (₹)</label><input type="number" id="ord-amount" class="form-control" step="0.01" required></div>
-                  <div class="form-group"><label>Delivery Charge (₹)</label><input type="number" id="ord-delivery" class="form-control" step="0.01" value="0" required></div>
+                <div class="form-group"><label>Full Address</label><textarea id="ord-address" class="form-control" rows="2" required></textarea></div>
+                <div class="form-group"><label>Location Link (Optional)</label><input type="url" id="ord-location" class="form-control"></div>
+                <hr class="modal-divider">
+                <div class="order-items-title-row">
+                  <h4>Order Items</h4>
+                  <button type="button" id="add-order-item-btn" class="btn-secondary btn-sm">+ Add Item</button>
                 </div>
-                <div class="form-group"><label>Total Payable (₹ - Auto)</label><input type="number" id="ord-payable" class="form-control" readonly style="background-color: #f1f5f9;"></div>
+                <div id="order-items-container" class="order-items-container"></div>
+                <template id="order-item-template">
+                  <div class="order-item-row" data-order-item-row>
+                    <div class="form-group"><label>Product</label><select class="form-control order-product" required></select><small class="stock-availability">Stock: -</small></div>
+                    <div class="form-group"><label>Price Type</label><select class="form-control order-price-type"><option value="with-gst">Including GST</option><option value="without-gst">Without GST</option><option value="promotion">Promotion / Free</option><option value="custom">Custom Amount</option></select></div>
+                    <div class="form-group"><label>Qty</label><input type="number" class="form-control order-qty" min="1" value="1" required></div>
+                    <div class="form-group"><label>Amount ₹</label><input type="number" class="form-control order-amount" step="0.01" required></div>
+                    <div class="form-group"><label>&nbsp;</label><button type="button" class="btn-danger btn-sm remove-order-item-btn">Remove</button></div>
+                  </div>
+                </template>
                 <div class="form-grid-2">
-                  <div class="form-group">
-                    <label>Payment Status</label>
-                    <select id="ord-pstatus" class="form-control">
-                      <option>Pending</option><option>Paid</option><option>Partial</option>
-                    </select>
-                  </div>
-                  <div class="form-group">
-                    <label>Order Status</label>
-                    <select id="ord-ostatus" class="form-control">
-                      <option>New</option><option>Pending</option><option>Confirmed</option><option>Packed</option><option>Shipped</option><option>Delivered</option><option>Cancelled</option><option>Returned</option>
-                    </select>
-                  </div>
+                  <div class="form-group"><label>Delivery / Expense ₹</label><input type="number" id="ord-delivery" class="form-control" step="0.01" value="0"></div>
+                  <div class="form-group"><label>Total Payable ₹</label><input type="number" id="ord-payable" class="form-control" readonly></div>
                 </div>
-                <div class="form-group"><label>Full Delivery Address</label><input type="text" id="ord-address" class="form-control" required></div>
+                <hr class="modal-divider">
+                <h4>Payment Details</h4>
+                <div class="form-grid-3">
+                  <div class="form-group"><label>First Payment ₹</label><input type="number" id="ord-paid" class="form-control" step="0.01" value="0"></div>
+                  <div class="form-group"><label>Payment Mode</label><select id="ord-payment-mode" class="form-control"><option>Cash</option><option>UPI</option><option>Bank</option><option>Card</option></select></div>
+                  <div class="form-group"><label>Payment Status</label><select id="ord-pstatus" class="form-control"><option>Pending</option><option>Partial</option><option>Paid</option><option>Advance Credit</option></select></div>
+                </div>
+                <div id="order-credit-note" class="alert alert-info" hidden></div>
+                <input type="hidden" id="ord-source" value="Direct">
                 <div class="form-group"><label>Notes</label><input type="text" id="ord-notes" class="form-control"></div>
-                <button type="submit" id="orders-submit-btn" class="btn-primary submit-btn" style="width: 100%;">Save Record</button>
+                <div class="modal-footer">
+                  <button type="button" id="cancel-order-modal-btn" class="btn-secondary">Cancel</button>
+                  <button type="submit" id="orders-submit-btn" class="btn-primary submit-btn">Save Order</button>
+                </div>
               </form>
             </div>
-            <div class="table-responsive">
-              <table>
-                <thead>
-                  <tr>
-                    <th>Date / Source</th><th>Customer Info</th><th>Product</th><th>Amount Payable</th><th>Payment</th><th>Order Status</th><th>Actions</th>
-                  </tr>
-                </thead>
-                <tbody id="orders-table-body"></tbody>
-              </table>
+          </div>
+
+          <div id="order-payment-modal" class="modal-overlay" hidden>
+            <div class="modal-card order-payment-modal-card">
+              <div class="modal-header">
+                <h3>Update Order Payment</h3>
+                <button type="button" id="close-order-payment-modal-btn" class="icon-button" aria-label="Close payment form">×</button>
+              </div>
+              <form id="order-payment-form">
+                <input type="hidden" id="pay-order-id">
+                <div class="form-grid-2">
+                  <div class="form-group"><label>Total Payable ₹</label><input type="number" id="pay-total" class="form-control" readonly></div>
+                  <div class="form-group"><label>Current Paid ₹</label><input type="number" id="pay-current-paid" class="form-control" readonly></div>
+                </div>
+                <div class="form-grid-2">
+                  <div class="form-group"><label>Add / Set Paid Amount ₹</label><input type="number" id="pay-paid-amount" class="form-control" step="0.01" min="0" required></div>
+                  <div class="form-group"><label>Payment Mode</label><select id="pay-mode" class="form-control"><option>Cash</option><option>UPI</option><option>Bank</option><option>Card</option></select></div>
+                </div>
+                <div class="form-grid-2">
+                  <div class="form-group"><label>Payment Status</label><select id="pay-status" class="form-control"><option>Pending</option><option>Partial</option><option>Paid</option><option>Advance Credit</option></select></div>
+                  <div class="form-group"><label>Balance Due ₹</label><input type="number" id="pay-balance" class="form-control" readonly></div>
+                </div>
+                <div id="pay-credit-note" class="alert alert-info" hidden></div>
+                <div class="modal-footer">
+                  <button type="button" id="cancel-order-payment-modal-btn" class="btn-secondary">Cancel</button>
+                  <button type="submit" class="btn-primary">Save Payment</button>
+                </div>
+              </form>
             </div>
           </div>
         </section>
@@ -706,7 +870,7 @@
                 <div class="form-group"><label>Description</label><input type="text" id="cb-desc" class="form-control" required placeholder="e.g. Office tea expense"></div>
                 <div class="form-group"><label>Amount (₹)</label><input type="number" id="cb-amount" class="form-control" step="0.01" required></div>
                 <div class="form-group"><label>Reference ID (Optional)</label><input type="text" id="cb-ref" class="form-control" placeholder="e.g. REC-11"></div>
-                <button type="submit" class="btn-primary" style="width: 100%;">Add Entry</button>
+                <button type="submit" id="cashbook-submit-btn" class="btn-primary submit-btn" style="width: 100%;">Save Record</button>
               </form>
             </div>
             <div class="table-responsive">
@@ -742,7 +906,7 @@
                 <div class="form-group"><label>Description</label><input type="text" id="bb-desc" class="form-control" required placeholder="e.g. NEFT transfer"></div>
                 <div class="form-group"><label>Amount (₹)</label><input type="number" id="bb-amount" class="form-control" step="0.01" required></div>
                 <div class="form-group"><label>Transaction Ref / UTR No.</label><input type="text" id="bb-ref" class="form-control" required placeholder="TXN..."></div>
-                <button type="submit" class="btn-primary" style="width: 100%;">Add Entry</button>
+                <button type="submit" id="bankbook-submit-btn" class="btn-primary submit-btn" style="width: 100%;">Save Record</button>
               </form>
             </div>
             <div class="table-responsive">
@@ -899,40 +1063,24 @@
         <!-- ================= REPORTS MODULE ================= -->
         <section id="section-reports" class="app-section">
           <div class="section-header">
-            <h2 class="section-title">Operational Audits & Reports Desk</h2>
+            <h2 class="section-title">Advanced Reports & Export Desk</h2>
+            <span style="font-size: 0.875rem; color: var(--text-muted);">Firestore-generated summaries</span>
           </div>
-          
-          <div class="dashboard-grid">
-            <div class="dashboard-card" style="align-items: center; text-align: center; padding: 1.5rem;">
-              <h3 style="font-size: 1rem; margin-bottom: 0.5rem;">Daily Sales Ledger</h3>
-              <p style="font-size: 0.75rem; color: var(--text-muted); margin-bottom: 1rem;">Export and audit today's order volumes</p>
-              <button class="btn-primary btn-sm" onclick="alert('Export PDF coming in future update.')">View Report</button>
+          <div class="dashboard-grid" id="advanced-report-cards"></div>
+          <div class="card" style="margin-top: 1.5rem;">
+            <div class="card-title">Report Export Actions</div>
+            <div class="form-grid-3" style="display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 0.75rem;">
+              <button class="btn-primary" type="button" data-report-export="profitLoss" data-export-format="csv">Profit/Loss CSV</button>
+              <button class="btn-primary" type="button" data-report-export="investor" data-export-format="csv">Investor CSV</button>
+              <button class="btn-primary" type="button" data-report-export="stock" data-export-format="csv">Stock CSV</button>
+              <button class="btn-secondary" type="button" data-report-export="profitLoss" data-export-format="pdf">Profit/Loss PDF</button>
+              <button class="btn-secondary" type="button" data-report-export="salesPurchase" data-export-format="pdf">Sales/Purchase PDF</button>
+              <button class="btn-secondary" type="button" data-report-export="stock" data-export-format="pdf">Stock PDF</button>
             </div>
-            <div class="dashboard-card" style="align-items: center; text-align: center; padding: 1.5rem;">
-              <h3 style="font-size: 1rem; margin-bottom: 0.5rem;">Monthly Sales Summary</h3>
-              <p style="font-size: 0.75rem; color: var(--text-muted); margin-bottom: 1rem;">Consolidated monthly sales reports</p>
-              <button class="btn-primary btn-sm" onclick="alert('Export PDF coming in future update.')">View Report</button>
-            </div>
-            <div class="dashboard-card" style="align-items: center; text-align: center; padding: 1.5rem;">
-              <h3 style="font-size: 1rem; margin-bottom: 0.5rem;">Product Performance</h3>
-              <p style="font-size: 0.75rem; color: var(--text-muted); margin-bottom: 1rem;">Identify highest-grossing food categories</p>
-              <button class="btn-primary btn-sm" onclick="alert('Export PDF coming in future update.')">View Report</button>
-            </div>
-            <div class="dashboard-card" style="align-items: center; text-align: center; padding: 1.5rem;">
-              <h3 style="font-size: 1rem; margin-bottom: 0.5rem;">Customer Accounts Audit</h3>
-              <p style="font-size: 0.75rem; color: var(--text-muted); margin-bottom: 1rem;">Identify major retail or online buyers</p>
-              <button class="btn-primary btn-sm" onclick="alert('Export PDF coming in future update.')">View Report</button>
-            </div>
-            <div class="dashboard-card" style="align-items: center; text-align: center; padding: 1.5rem;">
-              <h3 style="font-size: 1rem; margin-bottom: 0.5rem;">Expense Statement</h3>
-              <p style="font-size: 0.75rem; color: var(--text-muted); margin-bottom: 1rem;">Complete categorization of operational costs</p>
-              <button class="btn-primary btn-sm" onclick="alert('Export PDF coming in future update.')">View Report</button>
-            </div>
-            <div class="dashboard-card" style="align-items: center; text-align: center; padding: 1.5rem;">
-              <h3 style="font-size: 1rem; margin-bottom: 0.5rem;">Stock Turnover</h3>
-              <p style="font-size: 0.75rem; color: var(--text-muted); margin-bottom: 1rem;">Material flows and processing speeds</p>
-              <button class="btn-primary btn-sm" onclick="alert('Export PDF coming in future update.')">View Report</button>
-            </div>
+          </div>
+          <div class="card" style="margin-top: 1.5rem;">
+            <div class="card-title">Report Details</div>
+            <div id="advanced-report-table" class="table-responsive"></div>
           </div>
         </section>
 
@@ -940,12 +1088,19 @@
         <section id="section-gstreports" class="app-section">
           <div class="section-header">
             <h2 class="section-title">GST Filings & Returns Summary</h2>
+            <span style="font-size: 0.875rem; color: var(--text-muted);">Firestore sales/purchase tax summary</span>
           </div>
-          <div class="card text-center" style="padding: 3rem 1.5rem; display: flex; flex-direction: column; align-items: center; justify-content: center;">
-            <span class="icon" aria-hidden="true" style="width: 48px; height: 48px; color: var(--primary); margin-bottom: 1rem;"><svg viewBox="0 0 24 24" style="width: 48px; height: 48px;"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg></span>
-            <h2 style="margin-top: 1rem; color: var(--primary);">GST Computations & Filings</h2>
-            <p style="color: var(--text-muted); margin-bottom: 1.5rem; font-size: 0.875rem;">Automatic generation of GSTR-1 and GSTR-3B matching invoice books is currently scheduled in the upcoming development phase.</p>
-            <span class="badge badge-warning" style="padding: 0.5rem 1rem;">Coming in future version</span>
+          <div class="dashboard-grid" id="gst-report-cards"></div>
+          <div class="card" style="margin-top: 1.5rem;">
+            <div class="card-title">GST Export Actions</div>
+            <div class="form-grid-2">
+              <button class="btn-primary" type="button" data-report-export="gst" data-export-format="csv">GST Summary CSV</button>
+              <button class="btn-secondary" type="button" data-report-export="gst" data-export-format="pdf">GST Summary PDF</button>
+            </div>
+          </div>
+          <div class="card" style="margin-top: 1.5rem;">
+            <div class="card-title">GST Summary Details</div>
+            <div id="gst-report-table" class="table-responsive"></div>
           </div>
         </section>
 
@@ -954,36 +1109,93 @@
           <div class="section-header">
             <h2 class="section-title">System Configurations</h2>
           </div>
-          <div class="card" style="max-width: 600px; margin: 0 auto;">
-            <div class="card-title">Settings Control Desk</div>
-            <form onsubmit="event.preventDefault(); alert('Settings saved locally!');">
-              <div class="form-group">
-                <label>Venture Base Currency</label>
-                <select class="form-control"><option>Indian Rupee (₹)</option><option>US Dollar ($)</option></select>
-              </div>
-              <div class="form-group">
-                <label>Fulfillment Courier Mode</label>
-                <select class="form-control"><option>DTDC Integrated</option><option>Manual Courier Partners</option></select>
-              </div>
-              <div class="form-group">
-                <label>Company Address on Invoices</label>
-                <textarea class="form-control" rows="2">Lakfa Foods, Malappuram, Kerala</textarea>
-              </div>
-              <div class="form-group">
-                <label>Notification Channels</label>
-                <div style="display: flex; gap: 1rem; font-size: 0.875rem;">
-                  <label><input type="checkbox" checked> WhatsApp dispatch notifications</label>
-                  <label><input type="checkbox" checked> Investor share emails</label>
+          <div class="settings-grid">
+            <div class="card">
+              <div class="card-title">Application Appearance</div>
+              <p class="settings-help">These options are saved in <code>settings/appSettings.appearance</code> and apply to the whole manager app.</p>
+              <form id="app-appearance-form" class="settings-form">
+                <div class="form-grid-2">
+                  <div class="form-group"><label>Theme</label><select id="appearance-theme" class="form-control"><option value="light">Light</option><option value="dark">Dark</option></select></div>
+                  <div class="form-group"><label>Header Color</label><input id="appearance-header-color" type="color" class="form-control" value="#dc2626"></div>
+                  <div class="form-group"><label>Sidebar Color</label><input id="appearance-sidebar-color" type="color" class="form-control" value="#dc2626"></div>
+                  <div class="form-group"><label>Active Tab Color</label><input id="appearance-active-color" type="color" class="form-control" value="#ffffff"></div>
                 </div>
-              </div>
-              <button class="btn-primary" style="width: 100%; margin-top: 1rem;">Apply Configurations</button>
-            </form>
+                <button id="appearance-save-btn" type="submit" class="btn-primary">Save App Settings</button>
+              </form>
+            </div>
+            <div class="card">
+              <div class="card-title">Firebase-backed Company Settings</div>
+              <p class="settings-help">Company identity, invoice address, contact details, website, social links, logo, and signature logo are saved in <code>settings/companyProfile</code>. Use the Company Profile module to edit these settings.</p>
+              <table class="table settings-company-table">
+                <tr><td>Company</td><td data-company-name>Lakfa ERP</td></tr>
+                <tr><td>Email</td><td data-company-email></td></tr>
+                <tr><td>Phone</td><td data-company-phone></td></tr>
+              </table>
+            </div>
           </div>
         </section>
-
       </div>
     </main>
   </div>
+
+  <div id="module-settings-modal" class="settings-modal" hidden>
+    <div class="settings-modal-backdrop" data-settings-close></div>
+    <aside class="settings-panel" role="dialog" aria-modal="true" aria-labelledby="module-settings-title">
+      <div class="settings-panel-header">
+        <div>
+          <div class="settings-eyebrow">Firebase module settings</div>
+          <h2 id="module-settings-title">Tab Settings</h2>
+          <p id="module-settings-subtitle">Saved in settings/appSettings</p>
+        </div>
+        <button type="button" class="icon-button" data-settings-close aria-label="Close settings">×</button>
+      </div>
+      <form id="module-settings-form" class="settings-form">
+        <input type="hidden" id="settings-section-key">
+        <div class="form-group">
+          <label>Numbering Prefix</label>
+          <input id="settings-numbering-prefix" class="form-control" placeholder="Example: INV, ORD, PRD">
+        </div>
+
+        <div class="form-grid-2">
+          <div class="form-group">
+            <label>GST Rate (%)</label>
+            <input id="settings-gst-rate" type="number" class="form-control" min="0" max="28" step="0.01" placeholder="Example: 18">
+          </div>
+          <div class="form-group">
+            <label>Tax Mode</label>
+            <select id="settings-tax-mode" class="form-control">
+              <option value="inclusive">Inclusive</option>
+              <option value="exclusive">Exclusive</option>
+            </select>
+          </div>
+        </div>
+        <div class="form-group">
+          <label>Required Fields</label>
+          <textarea id="settings-required-fields" class="form-control" rows="3" placeholder="One field per line: name, phone, amount"></textarea>
+        </div>
+        <div class="form-group">
+          <label>Dropdown / Status Options</label>
+          <textarea id="settings-dropdown-options" class="form-control" rows="4" placeholder="One option per line: Paid, Pending, Partial"></textarea>
+        </div>
+        <div class="form-group">
+          <label>Visible Table Columns</label>
+          <textarea id="settings-visible-columns" class="form-control" rows="4" placeholder="One column per line: date, customer, amount"></textarea>
+        </div>
+
+        <div class="form-group">
+          <label>WhatsApp / Notification Templates</label>
+          <textarea id="settings-notification-templates" class="form-control" rows="5" placeholder="Example: orderConfirmation=Hi {{customer}}, your order {{orderId}} is confirmed."></textarea>
+          <small style="color: var(--text-muted);">Use placeholders like {{customer}}, {{orderId}}, {{product}}, {{amount}}, {{paymentStatus}}, {{trackingId}}, {{invoiceNumber}}, {{invoiceLink}}, {{companyName}}.</small>
+        </div>
+        <div class="form-group">
+          <label>Module Notes</label>
+          <textarea id="settings-module-notes" class="form-control" rows="3" placeholder="Any settings guidance for this tab"></textarea>
+        </div>
+        <button id="module-settings-save-btn" type="submit" class="btn-primary" style="width: 100%;">Save Settings</button>
+      </form>
+    </aside>
+  </div>
+
 
   <!-- Role Protection Script Guard -->
   <script type="module">
@@ -995,6 +1207,8 @@
   <script type="module" src="js/firebase-config.js"></script>
   <script type="module" src="js/role-guard.js"></script>
   <script type="module" src="js/utils.js"></script>
+  <script type="module" src="js/firebase-db.js"></script>
+  <script type="module" src="js/company-profile.js"></script>
   <script type="module" src="js/manager.js"></script>
 </body>
 </html>

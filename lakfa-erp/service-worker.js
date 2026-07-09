@@ -1,11 +1,13 @@
 /* Lakfa ERP Progressive Web App Service Worker */
-const CACHE_NAME = "lakfa-erp-cache-v1";
+const CACHE_NAME = "lakfa-erp-cache-v15";
 const ASSETS_TO_CACHE = [
   "index.html",
   "manager.html",
   "investor.html",
   "css/style.css",
   "js/firebase-config.js",
+  "js/firebase-db.js",
+  "js/company-profile.js",
   "js/auth.js",
   "js/role-guard.js",
   "js/manager.js",

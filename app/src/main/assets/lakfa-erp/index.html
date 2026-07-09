@@ -15,21 +15,9 @@
   <div class="login-container">
     <div class="login-card">
       <div class="login-header">
-        <div class="login-logo">Lakfa ERP</div>
+        <img data-company-logo hidden alt="Company logo" style="width: 72px; height: 72px; object-fit: contain; margin: 0 auto 0.75rem; display: block;">
+        <div class="login-logo" data-company-name>Lakfa ERP</div>
         <div class="login-subtitle">Food Business Operations Management</div>
-      </div>
-
-      <!-- Demo Mode Information Banner -->
-      <div id="demo-banner" class="alert alert-info d-none">
-        <div style="display: flex; align-items: flex-start; gap: 0.5rem;">
-          <span class="icon" aria-hidden="true" style="color: var(--info); margin-top: 2px;"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="16" x2="12" y2="12"></line><line x1="12" y1="8" x2="12" y2="8"></line></svg></span>
-          <div>
-            <strong>Running in Demo Mode</strong><br>
-            Use these credentials to test:<br>
-            • <strong>Admin:</strong> admin@lakfa.com (pw: <code>admin123</code>)<br>
-            • <strong>Investor:</strong> investor@lakfa.com (pw: <code>investor123</code>)
-          </div>
-        </div>
       </div>
 
       <!-- Error Message Banner -->
@@ -81,6 +69,8 @@
   <!-- JS Modules -->
   <script type="module" src="js/firebase-config.js"></script>
   <script type="module" src="js/role-guard.js"></script>
+  <script type="module" src="js/firebase-db.js"></script>
+  <script type="module" src="js/company-profile.js"></script>
   <script type="module" src="js/auth.js"></script>
 </body>
 </html>

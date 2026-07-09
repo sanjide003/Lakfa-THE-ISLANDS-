@@ -29,7 +29,7 @@ lakfa-erp/
       ├── firebase-config.js# SDK Config & exports
       ├── auth.js           # Auth handlers & Demo flow limits
       ├── role-guard.js     # Protected page redirects
-      ├── manager.js        # Form validation, Storage CRUD, auto-calc
+      ├── manager.js        # Form validation, Firestore CRUD, auto-calc
       ├── investor.js       # View-only investor calculations
       └── utils.js          # Shared date, currency, phone formatters
 ```
@@ -44,27 +44,51 @@ The system is protected by a strict **Role-Based Access Control (RBAC)** guard:
 
 ---
 
-## ⚠️ Security Warning
+## ⚠️ Production Readiness
 
-> [!CAUTION]
-> **This first version is for testing/demo only.** Do not enter real customer, accounting, investor, or company data until Firebase Security Rules are properly configured.
+The web app is now wired to the Firebase project `fest-21d67`. Before entering real customer, accounting, investor, or company data, make sure the Firebase Console has:
 
-### Planned Firestore Security Rules
-Ensure these rules are applied in your Firebase Console under the **Firestore Rules** tab:
+1. Email/password authentication enabled.
+2. Admin and investor accounts created.
+3. Matching `users/{uid}` Firestore role documents created.
+4. The rules in `docs/firestore.rules` published to Firestore.
+
+### Firestore Security Rules
+The production rules are stored in `docs/firestore.rules`. Apply the same rules in your Firebase Console under the **Firestore Rules** tab:
 ```javascript
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
-    // Read user role metadata
-    match /users/{userId} {
-      allow read: if request.auth != null && request.auth.uid == userId;
-      allow write: if request.auth != null && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin';
+    function isSignedIn() {
+      return request.auth != null;
     }
-    
-    // Admin has full read/write, Investors can only read their matching records
+
+    function currentUserDoc() {
+      return get(/databases/$(database)/documents/users/$(request.auth.uid));
+    }
+
+    function hasActiveRole(role) {
+      return isSignedIn()
+        && currentUserDoc().data.status == 'active'
+        && currentUserDoc().data.role == role;
+    }
+
+    function isAdmin() {
+      return hasActiveRole('admin');
+    }
+
+    function isInvestor() {
+      return hasActiveRole('investor');
+    }
+
+    match /users/{userId} {
+      allow read: if isSignedIn() && (request.auth.uid == userId || isAdmin());
+      allow create, update, delete: if isAdmin();
+    }
+
     match /{document=**} {
-      allow read, write: if request.auth != null && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin';
-      allow read: if request.auth != null && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'investor';
+      allow read: if isAdmin() || isInvestor();
+      allow write: if isAdmin();
     }
   }
 }
@@ -72,15 +96,8 @@ service cloud.firestore {
 
 ---
 
-## ⚡ Quick Evaluation & Testing (Demo Mode)
-If the Firebase SDK is unconfigured, the application runs in a local-storage **Demo Mode**. You can log in using these preset credentials:
-
-*   **Administrator Account:**
-    *   **Email:** `admin@lakfa.com`
-    *   **Password:** `admin123`
-*   **Venture Investor Account:**
-    *   **Email:** `investor@lakfa.com`
-    *   **Password:** `investor123`
+## ⚡ Firebase-only Data Mode
+Lakfa ERP no longer ships trial credentials, placeholder records, or browser-local business storage. Dashboards, ledgers, company profile, logo, and signature branding render records/text images from Firebase only. If a Firestore collection is empty, the related module shows an empty state until an admin creates records in Firebase.
 
 ---
 
@@ -92,8 +109,8 @@ Deploying this project to Vercel takes less than a minute and requires no comman
 2.  Log in to the [Vercel Dashboard](https://vercel.com).
 3.  Click **"Add New"** → **"Project"**.
 4.  Import your repository.
-5.  Set the Root Directory to `lakfa-erp`.
-6.  Click **"Deploy"**. Vercel will automatically detect the static file layout and host it on a global edge CDN.
+5.  Keep the Root Directory as the repository root so Vercel serves the top-level `index.html` login page.
+6.  Click **"Deploy"**. Vercel will serve the root `index.html` login page and load the app assets from `lakfa-erp/`.
 
 ### 2. Installing PWA
 1.  Open the deployed URL in Google Chrome, Edge, or Apple Safari.
@@ -103,6 +120,6 @@ Deploying this project to Vercel takes less than a minute and requires no comman
 ---
 
 ## 🔮 Future Roadmap (Phase 2 Development)
-*   **Live Cloud Storage:** Seamlessly replace `localStorage` engines with Google Firestore live synchronizations.
+*   **Firestore Write Workflows:** All primary ERP modules now support Firestore-backed admin create/update/delete with audit fields, including production batches and profit sharing. Purchase, sales, production, profit sharing, cashbook, and bankbook workflows use batched reconciliation helpers for inventory/ledger side effects while investor access remains read-only.
 *   **Invoicing & GST Forms:** Automatically generate professional PDFs and compile GSTR-1 summaries.
 *   **WhatsApp CRM:** Trigger automated dispatch alerts, delivery trackers, and confirmation messages directly to customer phone numbers.
