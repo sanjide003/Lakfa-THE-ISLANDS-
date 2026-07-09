@@ -413,7 +413,10 @@ function initAppAppearanceSettings() {
   setValue("appearance-header-color", settings.headerColor);
   setValue("appearance-sidebar-color", settings.sidebarColor);
   setValue("appearance-active-color", settings.activeColor);
-  form.addEventListener("input", () => {
+  form.addEventListener("input", (event) => {
+    if (event.target?.id === "appearance-theme") {
+      setAppearancePreset(getValue("appearance-theme"));
+    }
     appSettings.appearance = readAppearanceForm();
     applyAppearanceSettings();
   });
@@ -444,11 +447,12 @@ function readAppearanceForm() {
 }
 
 function getAppearanceSettings() {
+  const preset = getAppearancePreset(appSettings.appearance?.theme || "light");
   return {
-    theme: appSettings.appearance?.theme || "light",
-    headerColor: appSettings.appearance?.headerColor || "#ffffff",
-    sidebarColor: appSettings.appearance?.sidebarColor || "#ffffff",
-    activeColor: appSettings.appearance?.activeColor || "#0f766e"
+    theme: appSettings.appearance?.theme || preset.theme,
+    headerColor: appSettings.appearance?.headerColor || preset.headerColor,
+    sidebarColor: appSettings.appearance?.sidebarColor || preset.sidebarColor,
+    activeColor: appSettings.appearance?.activeColor || preset.activeColor
   };
 }
 
@@ -457,9 +461,11 @@ function applyAppearanceSettings() {
   const root = document.documentElement;
   root.dataset.theme = settings.theme;
   root.style.setProperty("--header-bg", settings.headerColor);
+  root.style.setProperty("--header-text", getReadableTextColor(settings.headerColor));
   root.style.setProperty("--sidebar-bg", settings.sidebarColor);
-  root.style.setProperty("--active-tab-color", settings.activeColor);
-  root.style.setProperty("--active-tab-bg", hexToRgba(settings.activeColor, settings.theme === "dark" ? 0.22 : 0.12));
+  root.style.setProperty("--sidebar-text", getReadableTextColor(settings.sidebarColor));
+  root.style.setProperty("--active-tab-bg", settings.activeColor);
+  root.style.setProperty("--active-tab-color", getReadableTextColor(settings.activeColor, settings.sidebarColor));
 }
 
 function hexToRgba(hex, alpha = 0.12) {
@@ -469,6 +475,45 @@ function hexToRgba(hex, alpha = 0.12) {
   const g = (bigint >> 8) & 255;
   const b = bigint & 255;
   return `rgba(${r}, ${g}, ${b}, ${alpha})`;
+}
+
+function getAppearancePreset(theme = "light") {
+  if (theme === "dark") {
+    return {
+      theme: "dark",
+      headerColor: "#111827",
+      sidebarColor: "#0f172a",
+      activeColor: "#ef4444"
+    };
+  }
+  return {
+    theme: "light",
+    headerColor: "#dc2626",
+    sidebarColor: "#dc2626",
+    activeColor: "#ffffff"
+  };
+}
+
+function setAppearancePreset(theme) {
+  const preset = getAppearancePreset(theme);
+  setValue("appearance-header-color", preset.headerColor);
+  setValue("appearance-sidebar-color", preset.sidebarColor);
+  setValue("appearance-active-color", preset.activeColor);
+}
+
+function getReadableTextColor(backgroundHex, fallbackForLight = "#0f172a") {
+  const luminance = getHexLuminance(backgroundHex);
+  return luminance > 0.72 ? fallbackForLight : "#ffffff";
+}
+
+function getHexLuminance(hex) {
+  const normalized = String(hex || "#ffffff").replace("#", "");
+  const parsed = parseInt(normalized.length === 3 ? normalized.split("").map((char) => char + char).join("") : normalized, 16);
+  const channels = [(parsed >> 16) & 255, (parsed >> 8) & 255, parsed & 255].map((value) => {
+    const channel = value / 255;
+    return channel <= 0.03928 ? channel / 12.92 : ((channel + 0.055) / 1.055) ** 2.4;
+  });
+  return 0.2126 * channels[0] + 0.7152 * channels[1] + 0.0722 * channels[2];
 }
 
 function getDefaultModuleSettings(sectionKey) {

@@ -19,10 +19,12 @@
   --danger: #ef4444; /* Red 500 */
   --warning: #f59e0b; /* Amber 500 */
   --info: #3b82f6; /* Blue 500 */
-  --header-bg: #ffffff;
-  --sidebar-bg: #ffffff;
-  --active-tab-color: #0f766e;
-  --active-tab-bg: #f0fdfa;
+  --header-bg: #dc2626;
+  --header-text: #ffffff;
+  --sidebar-bg: #dc2626;
+  --sidebar-text: #ffffff;
+  --active-tab-color: #dc2626;
+  --active-tab-bg: #ffffff;
   
   --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
   --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
@@ -269,6 +271,7 @@ tr:hover td {
 .sidebar {
   width: 260px;
   background-color: var(--sidebar-bg);
+  color: var(--sidebar-text);
   border-right: 1px solid var(--border);
   display: flex;
   flex-direction: column;
@@ -285,7 +288,7 @@ tr:hover td {
 .sidebar-logo {
   font-size: 1.25rem;
   font-weight: 700;
-  color: var(--primary);
+  color: var(--sidebar-text);
 }
 .sidebar-menu {
   flex-grow: 1;
@@ -298,7 +301,7 @@ tr:hover td {
   gap: 0.75rem;
   padding: 0.625rem 0.75rem;
   border-radius: 6px;
-  color: var(--text-main);
+  color: var(--sidebar-text);
   text-decoration: none;
   font-size: 0.875rem;
   font-weight: 500;
@@ -307,7 +310,7 @@ tr:hover td {
   transition: var(--transition);
 }
 .sidebar-item:hover {
-  background-color: var(--bg-app);
+  background-color: rgba(255, 255, 255, 0.14);
 }
 .sidebar-item.active {
   background-color: var(--active-tab-bg);
@@ -348,6 +351,7 @@ tr:hover td {
 .top-header {
   height: 60px;
   background-color: var(--header-bg);
+  color: var(--header-text);
   border-bottom: 1px solid var(--border);
   display: flex;
   align-items: center;
@@ -366,7 +370,7 @@ tr:hover td {
   font-size: 1.25rem;
   padding: 0.25rem;
   cursor: pointer;
-  color: var(--text-main);
+  color: var(--header-text);
 }
 .menu-toggle svg { width: 22px; height: 22px; opacity: 1; }
 .header-page-title {
@@ -715,12 +719,12 @@ tr:hover td {
   width: 100%;
   border: 0;
   background: transparent;
-  color: var(--text-main);
+  color: var(--sidebar-text);
   justify-content: space-between;
   padding: 0.7rem 1rem;
   font-weight: 700;
 }
-.sidebar-group-toggle:hover { background: var(--primary-subtle); color: var(--primary); }
+.sidebar-group-toggle:hover { background: rgba(255, 255, 255, 0.14); color: var(--sidebar-text); }
 .sidebar-group .sidebar-submenu { display: none; padding-left: 0.35rem; }
 .sidebar-group.expanded .sidebar-submenu { display: block; }
 .sidebar-group.expanded .chevron { transform: rotate(180deg); }
