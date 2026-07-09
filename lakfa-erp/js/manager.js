@@ -38,7 +38,8 @@ const READ_ONLY_MESSAGE = "This module is read-only until its Firestore write wo
 const WRITABLE_FORM_IDS = new Set([
   "product-form", "customer-form", "supplier-form", "investors-form",
   "purchase-form", "inventory-form", "sales-form", "orders-form", "delivery-form",
-  "expenses-form", "income-form", "cashbook-form", "bankbook-form", "production-form", "sharing-form"
+  "expenses-form", "income-form", "cashbook-form", "bankbook-form", "production-form", "sharing-form",
+  "app-appearance-form"
 ]);
 const WRITABLE_KEYS = new Set([
   KEYS.products, KEYS.customers, KEYS.suppliers, KEYS.investors,
@@ -78,13 +79,16 @@ document.addEventListener("DOMContentLoaded", async () => {
 
   // 3. Load app/module settings foundation
   await loadAppSettings();
+  applyAppearanceSettings();
   initModuleSettingsPanel();
+  initAppAppearanceSettings();
 
   // 4. Enable Firestore writes for approved modules
   initWritableFormListeners();
 
   // 5. Set up event listeners for sidebar routing (tab switching + history)
   initSidebarAccordion();
+  hydrateSvgIcons();
   initSidebarRouting();
   initOrderManagementUi();
 
@@ -140,6 +144,40 @@ async function saveAppSettings() {
   await saveDocument(APP_SETTINGS_COLLECTION, APP_SETTINGS_DOCUMENT, appSettings);
 }
 
+const SVG_ICONS = {
+  orders: '<svg viewBox="0 0 24 24"><path d="M6 3h12l2 4v14H4V7l2-4z"></path><path d="M4 7h16"></path><path d="M9 11h6"></path><path d="M9 15h6"></path></svg>',
+  payment: '<svg viewBox="0 0 24 24"><path d="M6 5h12"></path><path d="M7 9h10"></path><path d="M9 5c4 0 5 6 0 7l6 7"></path></svg>',
+  tag: '<svg viewBox="0 0 24 24"><path d="M20 13 11 22l-9-9V4h9l9 9z"></path><circle cx="7.5" cy="8.5" r="1.5"></circle></svg>',
+  return: '<svg viewBox="0 0 24 24"><path d="M9 14 4 9l5-5"></path><path d="M4 9h10a6 6 0 1 1 0 12h-2"></path></svg>',
+  cancel: '<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"></circle><path d="m9 9 6 6"></path><path d="m15 9-6 6"></path></svg>',
+  trash: '<svg viewBox="0 0 24 24"><path d="M3 6h18"></path><path d="M8 6V4h8v2"></path><path d="M6 6l1 15h10l1-15"></path><path d="M10 10v7"></path><path d="M14 10v7"></path></svg>',
+  user: '<svg viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"></circle><path d="M4 21a8 8 0 0 1 16 0"></path></svg>',
+  users: '<svg viewBox="0 0 24 24"><circle cx="9" cy="8" r="3"></circle><circle cx="17" cy="9" r="2.5"></circle><path d="M3 21a6 6 0 0 1 12 0"></path><path d="M14 18a5 5 0 0 1 7 3"></path></svg>',
+  store: '<svg viewBox="0 0 24 24"><path d="M4 10h16l-1-6H5l-1 6z"></path><path d="M5 10v10h14V10"></path><path d="M9 20v-6h6v6"></path></svg>',
+  box: '<svg viewBox="0 0 24 24"><path d="m12 3 8 4.5v9L12 21l-8-4.5v-9L12 3z"></path><path d="m4 7.5 8 4.5 8-4.5"></path><path d="M12 12v9"></path></svg>',
+  inventory: '<svg viewBox="0 0 24 24"><path d="M4 4h16v4H4z"></path><path d="M4 10h16v10H4z"></path><path d="M8 14h8"></path></svg>',
+  production: '<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"></circle><path d="M12 2v4"></path><path d="M12 18v4"></path><path d="M2 12h4"></path><path d="M18 12h4"></path></svg>',
+  invoice: '<svg viewBox="0 0 24 24"><path d="M6 3h12v18l-3-2-3 2-3-2-3 2V3z"></path><path d="M9 8h6"></path><path d="M9 12h6"></path></svg>',
+  plus: '<svg viewBox="0 0 24 24"><path d="M12 5v14"></path><path d="M5 12h14"></path></svg>',
+  delivery: '<svg viewBox="0 0 24 24"><path d="M3 7h11v10H3z"></path><path d="M14 11h4l3 3v3h-7z"></path><circle cx="7" cy="19" r="2"></circle><circle cx="17" cy="19" r="2"></circle></svg>',
+  purchase: '<svg viewBox="0 0 24 24"><path d="M6 6h15l-2 8H8L6 3H3"></path><circle cx="9" cy="20" r="1.5"></circle><circle cx="18" cy="20" r="1.5"></circle></svg>',
+  expense: '<svg viewBox="0 0 24 24"><path d="M12 3v18"></path><path d="M17 7H9.5a3.5 3.5 0 0 0 0 7H14a3.5 3.5 0 0 1 0 7H6"></path></svg>',
+  bank: '<svg viewBox="0 0 24 24"><path d="m3 9 9-6 9 6"></path><path d="M4 10h16"></path><path d="M6 10v8"></path><path d="M10 10v8"></path><path d="M14 10v8"></path><path d="M18 10v8"></path><path d="M4 20h16"></path></svg>',
+  cash: '<svg viewBox="0 0 24 24"><rect x="3" y="6" width="18" height="12" rx="2"></rect><circle cx="12" cy="12" r="3"></circle></svg>',
+  accounting: '<svg viewBox="0 0 24 24"><path d="M4 4h16v16H4z"></path><path d="M8 8h8"></path><path d="M8 12h8"></path><path d="M8 16h5"></path></svg>',
+  report: '<svg viewBox="0 0 24 24"><path d="M5 20V10"></path><path d="M12 20V4"></path><path d="M19 20v-7"></path></svg>',
+  gst: '<svg viewBox="0 0 24 24"><path d="M19 5 5 19"></path><circle cx="7" cy="7" r="2"></circle><circle cx="17" cy="17" r="2"></circle></svg>',
+  share: '<svg viewBox="0 0 24 24"><circle cx="18" cy="5" r="3"></circle><circle cx="6" cy="12" r="3"></circle><circle cx="18" cy="19" r="3"></circle><path d="m8.5 10.5 7-4"></path><path d="m8.5 13.5 7 4"></path></svg>',
+  company: '<svg viewBox="0 0 24 24"><path d="M4 21V5h10v16"></path><path d="M14 9h6v12"></path><path d="M8 9h2"></path><path d="M8 13h2"></path><path d="M8 17h2"></path></svg>',
+  settings: '<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1-2.9 2.9-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.6H10a1.7 1.7 0 0 0-1-1.6 1.7 1.7 0 0 0-1.8.3l-.1.1-2.9-2.9.1-.1A1.7 1.7 0 0 0 4.6 15 1.7 1.7 0 0 0 3 14v-4a1.7 1.7 0 0 0 1.6-1 1.7 1.7 0 0 0-.3-1.8l-.1-.1 2.9-2.9.1.1A1.7 1.7 0 0 0 9 3.6 1.7 1.7 0 0 0 10 2h4a1.7 1.7 0 0 0 1 1.6 1.7 1.7 0 0 0 1.8-.3l.1-.1 2.9 2.9-.1.1a1.7 1.7 0 0 0-.3 1.8A1.7 1.7 0 0 0 21 10v4a1.7 1.7 0 0 0-1.6 1z"></path></svg>'
+};
+
+function hydrateSvgIcons() {
+  document.querySelectorAll(".icon[data-icon]").forEach((icon) => {
+    icon.innerHTML = SVG_ICONS[icon.dataset.icon] || SVG_ICONS.settings;
+  });
+}
+
 function setFormsReadOnly() {
   document.querySelectorAll("form").forEach((form) => {
     if (form.dataset.firestoreWrite === "companyProfile" || WRITABLE_FORM_IDS.has(form.id)) {
@@ -177,7 +215,11 @@ function initSidebarRouting() {
   const headerPageTitle = document.getElementById("header-page-title");
 
   const activateSection = (targetSection, pushHistory = true, preferredItem = null) => {
-    const item = preferredItem || document.querySelector(`.sidebar-item[data-section="${targetSection}"]`);
+    const item = preferredItem || (
+      targetSection === "orders"
+        ? document.querySelector(`.sidebar-item[data-section="orders"][data-order-view="${activeOrderView}"]`) || document.querySelector(`.sidebar-item[data-section="orders"][data-order-view="pending"]`)
+        : document.querySelector(`.sidebar-item[data-section="${targetSection}"]`)
+    );
     if (!item) return;
     if (targetSection === "orders") {
       activeOrderView = item.dataset.orderView || activeOrderView || "pending";
@@ -205,6 +247,8 @@ function initSidebarRouting() {
       if (headerPageTitle) {
         headerPageTitle.textContent = item.textContent.trim();
       }
+
+      item.closest(".sidebar-group")?.classList.add("expanded");
 
       if (pushHistory) {
         const hash = targetSection === "orders" && activeOrderView !== "pending"
@@ -359,6 +403,72 @@ function closeModuleSettings() {
   const modal = document.getElementById("module-settings-modal");
   if (modal) modal.hidden = true;
   document.body.style.overflow = "";
+}
+
+function initAppAppearanceSettings() {
+  const form = document.getElementById("app-appearance-form");
+  if (!form) return;
+  const settings = getAppearanceSettings();
+  setValue("appearance-theme", settings.theme);
+  setValue("appearance-header-color", settings.headerColor);
+  setValue("appearance-sidebar-color", settings.sidebarColor);
+  setValue("appearance-active-color", settings.activeColor);
+  form.addEventListener("input", () => {
+    appSettings.appearance = readAppearanceForm();
+    applyAppearanceSettings();
+  });
+  form.addEventListener("submit", async (event) => {
+    event.preventDefault();
+    const button = document.getElementById("appearance-save-btn");
+    appSettings.appearance = readAppearanceForm();
+    if (button) button.disabled = true;
+    try {
+      await saveAppSettings();
+      showToast("Application settings saved to Firebase.", "success");
+    } catch (err) {
+      console.error("Unable to save application settings", err);
+      showToast(getFirebaseErrorMessage(err, "Unable to save application settings."), "error");
+    } finally {
+      if (button) button.disabled = false;
+    }
+  });
+}
+
+function readAppearanceForm() {
+  return {
+    theme: getValue("appearance-theme") || "light",
+    headerColor: getValue("appearance-header-color") || "#ffffff",
+    sidebarColor: getValue("appearance-sidebar-color") || "#ffffff",
+    activeColor: getValue("appearance-active-color") || "#0f766e"
+  };
+}
+
+function getAppearanceSettings() {
+  return {
+    theme: appSettings.appearance?.theme || "light",
+    headerColor: appSettings.appearance?.headerColor || "#ffffff",
+    sidebarColor: appSettings.appearance?.sidebarColor || "#ffffff",
+    activeColor: appSettings.appearance?.activeColor || "#0f766e"
+  };
+}
+
+function applyAppearanceSettings() {
+  const settings = getAppearanceSettings();
+  const root = document.documentElement;
+  root.dataset.theme = settings.theme;
+  root.style.setProperty("--header-bg", settings.headerColor);
+  root.style.setProperty("--sidebar-bg", settings.sidebarColor);
+  root.style.setProperty("--active-tab-color", settings.activeColor);
+  root.style.setProperty("--active-tab-bg", hexToRgba(settings.activeColor, settings.theme === "dark" ? 0.22 : 0.12));
+}
+
+function hexToRgba(hex, alpha = 0.12) {
+  const normalized = String(hex || "#0f766e").replace("#", "");
+  const bigint = parseInt(normalized.length === 3 ? normalized.split("").map((char) => char + char).join("") : normalized, 16);
+  const r = (bigint >> 16) & 255;
+  const g = (bigint >> 8) & 255;
+  const b = bigint & 255;
+  return `rgba(${r}, ${g}, ${b}, ${alpha})`;
 }
 
 function getDefaultModuleSettings(sectionKey) {
@@ -756,6 +866,17 @@ function initOrderManagementUi() {
       renderOrdersManagement();
     });
   });
+  document.getElementById("orders-select-all")?.addEventListener("change", (event) => {
+    document.querySelectorAll("#orders-table-body .order-row-select").forEach((checkbox) => {
+      checkbox.checked = event.target.checked;
+    });
+    updateOrderBulkActions();
+  });
+  document.getElementById("orders-table-body")?.addEventListener("change", (event) => {
+    if (event.target.matches(".order-row-select")) updateOrderBulkActions();
+  });
+  document.getElementById("bulk-restore-orders")?.addEventListener("click", () => bulkRecycleOrders("restore"));
+  document.getElementById("bulk-permanent-delete-orders")?.addEventListener("click", () => bulkRecycleOrders("permanent-delete"));
   ["orders-search", "orders-from-date", "orders-to-date"].forEach((id) => {
     document.getElementById(id)?.addEventListener("input", renderOrdersManagement);
   });
@@ -778,7 +899,7 @@ function initOrderManagementUi() {
   document.getElementById("orders-table-body")?.addEventListener("click", (event) => {
     const target = event.target.closest("button");
     if (!target) return;
-    const id = target.dataset.orderEdit || target.dataset.orderDelete || target.dataset.orderLabel || target.dataset.orderBill || target.dataset.orderCopy || target.dataset.orderWhatsapp || target.dataset.orderPayment || target.dataset.orderStatusUpdate || target.dataset.orderRestore || target.dataset.orderPermanentDelete;
+    const id = target.dataset.orderEdit || target.dataset.orderDelete || target.dataset.orderLabel || target.dataset.orderBill || target.dataset.orderCopy || target.dataset.orderWhatsapp || target.dataset.orderPayment || target.dataset.orderStatusUpdate || target.dataset.orderRestore || target.dataset.orderPermanentDelete || target.dataset.orderHistory;
     if (!id) return;
     if (target.dataset.orderEdit) {
       openOrderModal();
@@ -795,6 +916,7 @@ function initOrderManagementUi() {
     if (target.dataset.orderStatusUpdate) updateOrderStatusQuick(id);
     if (target.dataset.orderRestore) restoreOrder(id);
     if (target.dataset.orderPermanentDelete) permanentDeleteOrder(id);
+    if (target.dataset.orderHistory) showOrderHistory(id);
   });
 
   ["ord-delivery", "ord-paid"].forEach((id) => {
@@ -1052,6 +1174,12 @@ function renderOrdersManagement() {
   document.querySelectorAll(".due-filter").forEach((button) => button.classList.toggle("active", button.dataset.dueFilter === activeDueFilter));
   const dueFilters = document.getElementById("order-payment-due-filters");
   if (dueFilters) dueFilters.hidden = activeOrderView !== "payment-due";
+  const orderTabs = document.querySelector(".order-status-tabs");
+  const standaloneViews = ["payment-due", "returns", "cancelled", "recycle-bin"];
+  if (orderTabs) orderTabs.hidden = standaloneViews.includes(activeOrderView);
+  const selectAll = document.getElementById("orders-select-all");
+  if (selectAll) selectAll.checked = false;
+  updateOrderBulkActions();
 
   const search = getValue("orders-search").toLowerCase();
   const fromDate = getValue("orders-from-date");
@@ -1059,7 +1187,7 @@ function renderOrdersManagement() {
   const records = getStoredRecords(KEYS.orders).filter((order) => {
     const status = normalizeOrderStatus(order.orderStatus);
     const balance = getOrderBalance(order);
-    const haystack = [order.customer, order.customerName, order.phone, order.product, order.shopName].join(" ").toLowerCase();
+    const haystack = [order.customer, order.customerName, order.phone, order.product, order.shopName, renderOrderItems(order)].join(" ").toLowerCase();
     if (search && !haystack.includes(search)) return false;
     if (fromDate && (order.date || "") < fromDate) return false;
     if (toDate && (order.date || "") > toDate) return false;
@@ -1093,7 +1221,7 @@ function renderOrdersManagement() {
     const tr = document.createElement("tr");
     tr.dataset.id = order.id;
     tr.innerHTML = `
-      <td><input type="checkbox" aria-label="Select order"></td>
+      <td><input type="checkbox" class="order-row-select" value="${order.id}" aria-label="Select order ${escapeHtml(order.id)}"></td>
       <td><strong>${formatDate(order.date)}</strong><br><small>${order.source || "Direct"}</small></td>
       <td class="order-contact"><strong>${order.customer || order.customerName || "-"}</strong>${order.phone || ""}<br><small>PIN: ${order.pincode || order.pin || "-"}</small></td>
       <td>${renderOrderItems(order)}</td>
@@ -1117,24 +1245,28 @@ function renderOrderActions(order) {
   if (!isWritableKey(KEYS.orders)) return `<span style="color: var(--text-muted);">Read only</span>`;
   if (order.deletedAt) {
     return `<div class="order-recycle-actions">
-      <button class="btn-secondary btn-sm" type="button" data-order-restore="${order.id}">Restore</button>
-      <button class="btn-danger btn-sm" type="button" data-order-permanent-delete="${order.id}">Permanent Delete</button>
+      <button class="btn-secondary btn-sm icon-action" type="button" data-order-restore="${order.id}" title="Restore">${SVG_ICONS.return}<span>Restore</span></button>
+      <button class="btn-danger btn-sm icon-action" type="button" data-order-permanent-delete="${order.id}" title="Permanent Delete">${SVG_ICONS.trash}<span>Delete</span></button>
     </div>`;
   }
+  const historyButton = ["returned", "cancelled"].includes(normalizeOrderStatus(order.orderStatus))
+    ? `<button class="btn-secondary btn-sm icon-action" type="button" data-order-history="${order.id}" title="History">${SVG_ICONS.report}<span>History</span></button>`
+    : "";
   return `<div class="order-actions">
     <div class="order-status-control">
       <select class="form-control" data-order-status-select="${order.id}">
         ${["Pending", "Processing", "Shipped", "Delivered", "Cancelled", "Returned"].map((status) => `<option value="${status}" ${normalizeOrderStatus(order.orderStatus) === normalizeOrderStatus(status) ? "selected" : ""}>${status}</option>`).join("")}
       </select>
-      <button class="btn-secondary btn-sm" type="button" data-order-status-update="${order.id}">Set</button>
+      <button class="btn-secondary btn-sm icon-action" type="button" data-order-status-update="${order.id}" title="Set Status">${SVG_ICONS.settings}<span>Set</span></button>
     </div>
-    <button class="btn-secondary btn-sm" type="button" data-order-label="${order.id}">Label</button>
-    <button class="btn-secondary btn-sm print-doc-btn" type="button" data-order-bill="${order.id}">Bill</button>
-    <button class="btn-secondary btn-sm copy-notification-btn" type="button" data-order-copy="${order.id}">Copy Msg</button>
-    <button class="btn-secondary btn-sm whatsapp-btn" type="button" data-order-whatsapp="${order.id}">WhatsApp</button>
-    <button class="btn-secondary btn-sm edit-btn" type="button" data-order-edit="${order.id}">Update</button>
-    <button class="btn-primary btn-sm" type="button" data-order-payment="${order.id}">Payment</button>
-    <button class="btn-danger btn-sm delete-btn" type="button" data-order-delete="${order.id}">Delete</button>
+    <button class="btn-secondary btn-sm icon-action" type="button" data-order-label="${order.id}" title="Label">${SVG_ICONS.tag}<span>Label</span></button>
+    <button class="btn-secondary btn-sm icon-action print-doc-btn" type="button" data-order-bill="${order.id}" title="Bill">${SVG_ICONS.invoice}<span>Bill</span></button>
+    <button class="btn-secondary btn-sm icon-action copy-notification-btn" type="button" data-order-copy="${order.id}" title="Copy Message">${SVG_ICONS.orders}<span>Copy</span></button>
+    <button class="btn-secondary btn-sm icon-action whatsapp-btn" type="button" data-order-whatsapp="${order.id}" title="WhatsApp">${SVG_ICONS.delivery}<span>WhatsApp</span></button>
+    ${historyButton}
+    <button class="btn-secondary btn-sm icon-action edit-btn" type="button" data-order-edit="${order.id}" title="Update">${SVG_ICONS.plus}<span>Update</span></button>
+    <button class="btn-primary btn-sm icon-action" type="button" data-order-payment="${order.id}" title="Payment">${SVG_ICONS.payment}<span>Pay</span></button>
+    <button class="btn-danger btn-sm icon-action delete-btn" type="button" data-order-delete="${order.id}" title="Delete">${SVG_ICONS.trash}<span>Delete</span></button>
   </div>`;
 }
 
@@ -1189,9 +1321,62 @@ async function permanentDeleteOrder(id) {
   }
 }
 
+function getSelectedOrderIds() {
+  return [...document.querySelectorAll("#orders-table-body .order-row-select:checked")].map((checkbox) => checkbox.value).filter(Boolean);
+}
+
+function updateOrderBulkActions() {
+  const bar = document.getElementById("order-bulk-actions");
+  const countEl = document.getElementById("selected-orders-count");
+  const ids = getSelectedOrderIds();
+  if (countEl) countEl.textContent = String(ids.length);
+  if (bar) bar.hidden = !(activeOrderView === "recycle-bin" && ids.length > 0);
+}
+
+async function bulkRecycleOrders(action) {
+  const ids = getSelectedOrderIds();
+  if (!ids.length) return;
+  const label = action === "restore" ? "restore" : "permanently delete";
+  if (!confirm(`Do you want to ${label} ${ids.length} selected order(s)?`)) return;
+  for (const id of ids) {
+    if (action === "restore") {
+      const order = getStoredRecords(KEYS.orders).find((record) => record.id === id);
+      if (order) {
+        const restoredOrder = { ...order, deletedAt: null, deletedReason: null };
+        await saveOrderWorkflowUpdate(id, restoredOrder, null, "Order restored from Recycle Bin.");
+      }
+    } else {
+      const order = getStoredRecords(KEYS.orders).find((record) => record.id === id);
+      if (order?.deletedAt) await deleteCollectionRecord(COLLECTIONS.orders, id);
+    }
+  }
+  showToast(`Bulk ${label} completed.`, "success");
+  await refreshActiveData();
+}
+
+function showOrderHistory(id) {
+  const order = getStoredRecords(KEYS.orders).find((record) => record.id === id);
+  if (!order) return;
+  const history = Array.isArray(order.history) ? order.history : [];
+  const derived = [
+    order.createdAt ? `Created: ${formatDate(order.createdAt)} by ${order.createdBy || "admin"}` : "",
+    order.updatedAt ? `Updated: ${formatDate(order.updatedAt)} by ${order.updatedBy || "admin"}` : "",
+    order.orderStatus ? `Current status: ${order.orderStatus}` : "",
+    order.paymentStatus ? `Payment: ${order.paymentStatus} / Due ${formatCurrency(getOrderBalance(order))}` : "",
+    order.deletedAt ? `Moved to Recycle Bin: ${formatDate(order.deletedAt)}` : ""
+  ].filter(Boolean);
+  const lines = history.length
+    ? history.map((item, index) => `${index + 1}. ${item.date || item.createdAt || ""} ${item.action || item.status || ""} ${item.note || ""}`.trim())
+    : derived;
+  alert(lines.length ? lines.join("\n") : "No order history has been recorded yet.");
+}
+
 async function saveOrderWorkflowUpdate(id, updatedOrder, previousOrder, successMessage, options = {}) {
   try {
-    const payload = { ...updatedOrder };
+    const payload = {
+      ...updatedOrder,
+      history: appendOrderHistory(previousOrder, updatedOrder, successMessage)
+    };
     delete payload.id;
     await updateCollectionRecord(COLLECTIONS.orders, id, payload);
     await reconcileOrderInventoryAndLedger(options.skipApply ? null : updatedOrder, {
@@ -1208,6 +1393,27 @@ async function saveOrderWorkflowUpdate(id, updatedOrder, previousOrder, successM
     console.error("Order workflow update failed", err);
     showToast(getFirebaseErrorMessage(err, "Unable to update order workflow."), "error");
   }
+}
+
+function appendOrderHistory(previousOrder, updatedOrder, message) {
+  const history = Array.isArray(previousOrder?.history) ? [...previousOrder.history] : Array.isArray(updatedOrder?.history) ? [...updatedOrder.history] : [];
+  const previousStatus = previousOrder?.orderStatus || "";
+  const nextStatus = updatedOrder?.orderStatus || "";
+  const previousPaid = getNumberFromValue(previousOrder?.paidAmount);
+  const nextPaid = getNumberFromValue(updatedOrder?.paidAmount);
+  history.push({
+    at: new Date().toISOString(),
+    action: message,
+    fromStatus: previousStatus,
+    toStatus: nextStatus,
+    paidAmount: nextPaid,
+    note: previousStatus !== nextStatus
+      ? `Status changed from ${previousStatus || "new"} to ${nextStatus || "unknown"}`
+      : previousPaid !== nextPaid
+        ? `Payment changed from ${formatCurrency(previousPaid)} to ${formatCurrency(nextPaid)}`
+        : message
+  });
+  return history;
 }
 
 function getOrderStatusBadge(status) {
@@ -1232,6 +1438,32 @@ function isPromotionOrder(order) {
 
 function getOrderBalance(order) {
   return Math.max(getNumberFromValue(order.totalPayable) - getNumberFromValue(order.paidAmount), 0);
+}
+
+async function ensureCustomerFromOrder(order) {
+  const name = (order.customer || order.customerName || "").trim();
+  const phone = (order.phone || "").trim();
+  if (!name && !phone) return;
+  const existing = getStoredRecords(KEYS.customers).find((customer) =>
+    (phone && [customer.phone, customer.whatsapp].includes(phone)) ||
+    (name && String(customer.name || "").toLowerCase() === name.toLowerCase())
+  );
+  const payload = {
+    name: name || phone,
+    phone,
+    whatsapp: phone,
+    place: order.shopName || order.landmark || "Order Customer",
+    pin: order.pincode || order.pin || "",
+    address: order.address || "",
+    type: "Customer",
+    gst: order.gstNumber || "",
+    notes: `Auto-created/updated from order ${order.id || order.orderNumber || ""}`.trim()
+  };
+  if (existing) {
+    await updateCollectionRecord(COLLECTIONS.customers, existing.id, { ...existing, ...payload });
+  } else {
+    await createCollectionRecord(COLLECTIONS.customers, payload);
+  }
 }
 
 
@@ -2339,6 +2571,7 @@ function initWritableFormListeners() {
     populate: populateOrders,
     afterSave: async (data, meta) => {
       await reconcileOrderInventoryAndLedger(data, { ...meta, moduleName: "Order", amount: data.paidAmount, direction: "in", reference: data.customer });
+      await ensureCustomerFromOrder(data);
       if (data.advanceCredit > 0) {
         showToast(`Extra payment saved as party advance credit: ${formatCurrency(data.advanceCredit)}`, "info");
       }
